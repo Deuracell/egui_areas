@@ -47,6 +47,31 @@ fn walk(tree: &Tree, id: NodeId, rect: Rect, out: &mut Vec<(NodeId, Rect)>) {
     }
 }
 
+/// A split node together with the rectangle it divides.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SplitRect {
+    pub id: NodeId,
+    pub axis: Axis,
+    pub ratio: f32,
+    pub rect: Rect,
+}
+
+/// Every split within `bounds`, parents before children.
+pub fn split_rects(tree: &Tree, bounds: Rect) -> Vec<SplitRect> {
+    let mut out = Vec::new();
+    walk_splits(tree, tree.root(), bounds, &mut out);
+    out
+}
+
+fn walk_splits(tree: &Tree, id: NodeId, rect: Rect, out: &mut Vec<SplitRect>) {
+    if let Some(Node::Split { axis, ratio, first, second }) = tree.node(id) {
+        out.push(SplitRect { id, axis: *axis, ratio: *ratio, rect });
+        let (a, b) = rect.split(*axis, *ratio);
+        walk_splits(tree, *first, a, out);
+        walk_splits(tree, *second, b, out);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -64,5 +89,18 @@ mod tests {
         let area: f32 = rects.iter().map(|(_, r)| r.w * r.h).sum();
         assert!((area - 1.0).abs() < 1e-6);
         assert_eq!(rects[0].1, Rect { x: 0.0, y: 0.0, w: 0.25, h: 1.0 });
+    }
+
+    #[test]
+    fn split_rects_report_the_rectangle_each_split_divides() {
+        let k = || EditorKind::new("x");
+        let mut tree = Tree::single(k());
+        let root = tree.root();
+        let right = split_area(&mut tree, root, Axis::Horizontal, 0.25, k()).unwrap();
+        split_area(&mut tree, right, Axis::Vertical, 0.5, k()).unwrap();
+        let splits = split_rects(&tree, Rect::UNIT);
+        assert_eq!(splits.len(), 2);
+        assert_eq!(splits[0].rect, Rect::UNIT);
+        assert_eq!(splits[1].rect, Rect { x: 0.25, y: 0.0, w: 0.75, h: 1.0 });
     }
 }

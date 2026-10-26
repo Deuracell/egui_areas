@@ -8,6 +8,7 @@ repository.workspace  = true
 
 # Headless Blender-style area tiling. Must stay free of sketch/solver/bevy knowledge.
 [dependencies]
+egui     = { workspace = true }
 serde    = { workspace = true }
 slotmap  = { workspace = true }
 
