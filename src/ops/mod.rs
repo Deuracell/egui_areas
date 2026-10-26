@@ -6,6 +6,7 @@ mod join;
 mod maximize;
 mod ratio;
 mod resize;
+mod set_kind;
 mod split;
 mod swap;
 
@@ -15,5 +16,6 @@ pub use maximize::{maximize_area, restore_area, toggle_maximize};
 pub(crate) use ratio::clamp_ratio;
 pub use ratio::{MAX_RATIO, MIN_RATIO};
 pub use resize::resize_split;
+pub use set_kind::set_area_kind;
 pub use split::split_area;
 pub use swap::swap_areas;
