@@ -2,7 +2,17 @@ use super::action::AreaAction;
 use super::host::AreaHost;
 use crate::{Axis, EditorKind, NodeId};
 
-pub(super) const HEADER_HEIGHT: f32 = 24.0;
+/// Gap above and below the header's controls.
+const HEADER_PAD: f32 = 3.0;
+/// Gap between the header's left/right edge and its controls; also keeps them
+/// off the corner grab zones.
+const HEADER_INSET: f32 = 12.0;
+
+/// Header height: one standard control plus padding, so it follows the
+/// project-wide control height.
+pub(super) fn header_height(ui: &egui::Ui) -> f32 {
+    ui.spacing().interact_size.y + 2.0 * HEADER_PAD
+}
 
 /// What a header needs to know about its area to offer the right choices.
 pub(super) struct HeaderInfo {
@@ -25,24 +35,21 @@ pub(super) fn draw_header(
     host: &mut dyn AreaHost,
     actions: &mut Vec<AreaAction>,
 ) {
-    ui.painter().rect_filled(rect, 0.0, ui.visuals().faint_bg_color);
+    ui.painter().rect_filled(rect, super::rounding::top_radius(), ui.visuals().faint_bg_color);
     let area = info.area;
 
     // Registered before the dropdown so the dropdown wins clicks on top of it.
     let background = ui.interact(rect, ui.id().with(("header", area)), egui::Sense::click());
     background.context_menu(|ui| context_menu(ui, info, actions));
 
-    // Controls are one interact-height tall and centred, so this is also the
-    // gap above and below them: the left margin matches.
-    let margin = ((rect.height() - ui.spacing().interact_size.y) / 2.0).max(0.0);
     let mut strip = ui.new_child(
         egui::UiBuilder::new()
             .id_salt(("header_strip", area))
-            .max_rect(rect.shrink2(egui::vec2(margin, 0.0)))
+            .max_rect(rect.shrink2(egui::vec2(HEADER_INSET, 0.0)))
             .layout(egui::Layout::left_to_right(egui::Align::Center)),
     );
     egui::ComboBox::from_id_salt(("editor_kind", area))
-        .selected_text(egui::RichText::new(host.editor_name(kind)).small().strong())
+        .selected_text(egui::RichText::new(host.editor_name(kind)).strong())
         .show_ui(&mut strip, |ui| {
             for (k, name) in host.editor_kinds() {
                 if ui.selectable_label(&k == kind, name).clicked() {
@@ -65,8 +72,8 @@ fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaActi
             ui.close();
         }
     };
-    choose(ui, true, "Split into Left | Right", AreaAction::Split { area, axis: Axis::Horizontal });
-    choose(ui, true, "Split into Top / Bottom", AreaAction::Split { area, axis: Axis::Vertical });
+    choose(ui, true, "Split into Left | Right", AreaAction::Split { area, axis: Axis::Horizontal, ratio: 0.5 });
+    choose(ui, true, "Split into Top / Bottom", AreaAction::Split { area, axis: Axis::Vertical, ratio: 0.5 });
     ui.separator();
     choose(ui, info.can_absorb, "Absorb neighbour", AreaAction::AbsorbNeighbour { area });
     choose(ui, info.can_merge, "Merge into neighbour", AreaAction::MergeIntoNeighbour { area });

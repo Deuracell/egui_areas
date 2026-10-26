@@ -1,44 +1,61 @@
 use super::action;
 use super::active::ActiveArea;
 use super::area::draw_area;
+use super::corner_drag::handle_corner_drags;
 use super::dividers::{GAP, interact_dividers, paint_dividers};
+use super::hint::TilingHint;
 use super::header::HeaderInfo;
 use super::host::AreaHost;
 use super::pixels::to_pixels;
+use super::shortcuts;
 use crate::{Node, NodeId, Rect, Workspace};
 
 /// Draws the whole workspace into the space `ui` has left: the maximized area
 /// alone, or every area with draggable dividers between them. `active` is
 /// updated from the pointer and tells each editor whether it is the active one.
+/// Returns what the status bar should tell the user about tiling.
 pub fn show_workspace(
     ui: &mut egui::Ui,
     workspace: &mut Workspace,
     active: &mut ActiveArea,
     host: &mut dyn AreaHost,
-) {
+) -> TilingHint {
     let bounds = ui.available_rect_before_wrap();
     active.update(workspace, bounds, ui.input(|i| i.pointer.hover_pos()));
     let maximized = workspace.maximized().is_some();
     let mut actions = Vec::new();
+    let mut drawn = Vec::new();
 
+    ui.painter().rect_filled(bounds, 0.0, super::rounding::backdrop(ui));
+    let mut hint = if maximized { TilingHint::Maximized } else { TilingHint::None };
+    let mut dividers = Default::default();
     if !maximized {
-        interact_dividers(ui, &mut workspace.tree, bounds);
+        dividers = interact_dividers(ui, &mut workspace.tree, bounds);
+        if dividers.engaged {
+            hint = TilingHint::Divider;
+        }
     }
     for (id, unit) in workspace.visible_areas(Rect::UNIT) {
         let Some(kind) = workspace.tree.area(id).map(|a| a.kind.clone()) else { continue };
         let info = header_info(workspace, id, &kind);
         let rect = to_pixels(unit, bounds).shrink(GAP / 2.0);
         draw_area(ui, rect, id, &kind, &info, active.is(id), host, &mut actions);
+        drawn.push((id, rect));
     }
     if !maximized {
-        paint_dividers(ui, &workspace.tree, bounds);
+        paint_dividers(ui, &workspace.tree, bounds, &dividers);
+        if let Some(h) = handle_corner_drags(ui, workspace, bounds, &drawn, &mut actions) {
+            hint = h;
+        }
     }
+    shortcuts::collect(ui, active, &mut actions);
 
     for a in actions {
         // Header menus only offer actions that are valid for the current tree.
         let result = action::apply(workspace, a);
         debug_assert!(result.is_ok(), "area action refused: {result:?}");
     }
+    hint
 }
 
 fn header_info(ws: &Workspace, area: NodeId, kind: &crate::EditorKind) -> HeaderInfo {

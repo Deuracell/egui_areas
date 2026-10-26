@@ -1,4 +1,4 @@
-use crate::ops::{close_area, join_areas, set_area_kind, split_area, toggle_maximize};
+use crate::ops::{close_area, join_areas, set_area_kind, split_area, swap_areas, toggle_maximize};
 use crate::{Axis, EditorKind, NodeId, OpError, Workspace};
 
 /// Something the user asked for through an area header. Collected while
@@ -6,8 +6,10 @@ use crate::{Axis, EditorKind, NodeId, OpError, Workspace};
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum AreaAction {
     SetKind { area: NodeId, kind: EditorKind },
-    /// Split in two; the new area shows the same editor as `area`.
-    Split { area: NodeId, axis: Axis },
+    /// Split in two at `ratio`; the new area shows the same editor as `area`.
+    Split { area: NodeId, axis: Axis, ratio: f32 },
+    /// Exchange what two areas show.
+    SwapWith { area: NodeId, other: NodeId },
     /// Remove `area`; its neighbour expands into the space.
     MergeIntoNeighbour { area: NodeId },
     /// Remove `area`'s neighbour; `area` expands into the space.
@@ -18,10 +20,11 @@ pub(super) enum AreaAction {
 pub(super) fn apply(ws: &mut Workspace, action: AreaAction) -> Result<(), OpError> {
     match action {
         AreaAction::SetKind { area, kind } => set_area_kind(&mut ws.tree, area, kind),
-        AreaAction::Split { area, axis } => {
+        AreaAction::Split { area, axis, ratio } => {
             let kind = ws.tree.area(area).ok_or(OpError::NotAnArea(area))?.kind.clone();
-            split_area(&mut ws.tree, area, axis, 0.5, kind).map(|_| ())
+            split_area(&mut ws.tree, area, axis, ratio, kind).map(|_| ())
         }
+        AreaAction::SwapWith { area, other } => swap_areas(&mut ws.tree, area, other),
         AreaAction::MergeIntoNeighbour { area } => close_area(&mut ws.tree, area).map(|_| ()),
         AreaAction::AbsorbNeighbour { area } => {
             let neighbour = ws.tree.sibling(area).ok_or(OpError::LastArea)?;
@@ -44,11 +47,21 @@ mod tests {
     #[test]
     fn split_duplicates_the_editor_and_absorb_undoes_it() {
         let (mut w, a) = ws();
-        apply(&mut w, AreaAction::Split { area: a, axis: Axis::Horizontal }).unwrap();
+        apply(&mut w, AreaAction::Split { area: a, axis: Axis::Horizontal, ratio: 0.5 }).unwrap();
         let kinds: Vec<_> = w.tree.areas().iter().map(|&i| w.tree.area(i).unwrap().kind.id().to_string()).collect();
         assert_eq!(kinds, ["sketch", "sketch"]);
         apply(&mut w, AreaAction::AbsorbNeighbour { area: a }).unwrap();
         assert_eq!(w.tree.areas(), vec![a]);
+    }
+
+    #[test]
+    fn swap_exchanges_editors() {
+        let (mut w, a) = ws();
+        apply(&mut w, AreaAction::Split { area: a, axis: Axis::Vertical, ratio: 0.3 }).unwrap();
+        let b = w.tree.areas()[1];
+        crate::ops::set_area_kind(&mut w.tree, b, EditorKind::new("props")).unwrap();
+        apply(&mut w, AreaAction::SwapWith { area: a, other: b }).unwrap();
+        assert_eq!(w.tree.area(a).unwrap().kind.id(), "props");
     }
 
     #[test]

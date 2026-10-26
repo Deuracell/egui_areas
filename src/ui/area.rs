@@ -1,5 +1,5 @@
 use super::action::AreaAction;
-use super::header::{HEADER_HEIGHT, HeaderInfo, draw_header};
+use super::header::{HeaderInfo, draw_header, header_height};
 use super::host::AreaHost;
 use crate::{EditorKind, NodeId};
 
@@ -15,9 +15,9 @@ pub(super) fn draw_area(
     actions: &mut Vec<AreaAction>,
 ) {
     let border = ui.visuals().widgets.noninteractive.bg_stroke;
-    ui.painter().rect_filled(rect, 2.0, ui.visuals().panel_fill);
+    ui.painter().rect_filled(rect, super::rounding::radius(), ui.visuals().panel_fill);
 
-    let header = egui::Rect::from_min_size(rect.min, egui::vec2(rect.width(), HEADER_HEIGHT));
+    let header = egui::Rect::from_min_size(rect.min, egui::vec2(rect.width(), header_height(ui)));
     draw_header(ui, header, kind, info, active, host, actions);
 
     let body = egui::Rect::from_min_max(egui::pos2(rect.min.x, header.max.y), rect.max);
@@ -25,5 +25,6 @@ pub(super) fn draw_area(
     body_ui.set_clip_rect(body.intersect(ui.clip_rect()));
     host.show_editor(&mut body_ui, id, kind, active);
 
-    ui.painter().rect_stroke(rect, 2.0, border, egui::StrokeKind::Inside);
+    super::rounding::mask_corners(ui.painter(), rect, super::rounding::backdrop(ui));
+    ui.painter().rect_stroke(rect, super::rounding::radius(), border, egui::StrokeKind::Inside);
 }
