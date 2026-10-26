@@ -1,0 +1,15 @@
+[package]
+name        = "radcad-workspace"
+version.workspace     = true
+edition.workspace     = true
+authors.workspace     = true
+license.workspace     = true
+repository.workspace  = true
+
+# Headless Blender-style area tiling. Must stay free of sketch/solver/bevy knowledge.
+[dependencies]
+serde    = { workspace = true }
+slotmap  = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }
