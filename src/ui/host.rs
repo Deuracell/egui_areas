@@ -13,6 +13,10 @@ pub trait AreaHost {
     /// the same document. `None` for no badge.
     fn header_note(&self, kind: &EditorKind, same_kind_count: usize) -> Option<String>;
 
+    /// Lets the editor add controls to its area's header, after the dropdown
+    /// and badge. `ui` is a left-to-right row; content beyond the header is clipped.
+    fn show_header_extras(&mut self, ui: &mut egui::Ui, area: NodeId, kind: &EditorKind, active: bool);
+
     /// Draws the editor for `area` into `ui`, which spans exactly the area's
     /// body. `active` is true for the one area the user is working in.
     fn show_editor(&mut self, ui: &mut egui::Ui, area: NodeId, kind: &EditorKind, active: bool);

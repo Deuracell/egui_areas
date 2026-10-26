@@ -2,7 +2,7 @@ use super::action::AreaAction;
 use super::host::AreaHost;
 use crate::{Axis, EditorKind, NodeId};
 
-pub(super) const HEADER_HEIGHT: f32 = 22.0;
+pub(super) const HEADER_HEIGHT: f32 = 24.0;
 
 /// What a header needs to know about its area to offer the right choices.
 pub(super) struct HeaderInfo {
@@ -21,7 +21,8 @@ pub(super) fn draw_header(
     rect: egui::Rect,
     kind: &EditorKind,
     info: &HeaderInfo,
-    host: &dyn AreaHost,
+    active: bool,
+    host: &mut dyn AreaHost,
     actions: &mut Vec<AreaAction>,
 ) {
     ui.painter().rect_filled(rect, 0.0, ui.visuals().faint_bg_color);
@@ -31,10 +32,13 @@ pub(super) fn draw_header(
     let background = ui.interact(rect, ui.id().with(("header", area)), egui::Sense::click());
     background.context_menu(|ui| context_menu(ui, info, actions));
 
+    // Controls are one interact-height tall and centred, so this is also the
+    // gap above and below them: the left margin matches.
+    let margin = ((rect.height() - ui.spacing().interact_size.y) / 2.0).max(0.0);
     let mut strip = ui.new_child(
         egui::UiBuilder::new()
             .id_salt(("header_strip", area))
-            .max_rect(rect.shrink2(egui::vec2(4.0, 1.0)))
+            .max_rect(rect.shrink2(egui::vec2(margin, 0.0)))
             .layout(egui::Layout::left_to_right(egui::Align::Center)),
     );
     egui::ComboBox::from_id_salt(("editor_kind", area))
@@ -49,6 +53,8 @@ pub(super) fn draw_header(
     if let Some(note) = host.header_note(kind, info.same_kind_count) {
         strip.label(egui::RichText::new(note).small().weak());
     }
+    strip.set_clip_rect(rect.intersect(ui.clip_rect()));
+    host.show_header_extras(&mut strip, area, kind, active);
 }
 
 fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaAction>) {
