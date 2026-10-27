@@ -21,6 +21,7 @@ pub enum DragMode {
     Split,
     Join,
     Swap,
+    PopOut,
     /// Ctrl is held but the pointer is not over another area yet.
     SwapPending,
 }

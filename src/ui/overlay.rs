@@ -47,6 +47,14 @@ pub(super) fn paint_gesture(ui: &egui::Ui, bounds: egui::Rect, source: egui::Rec
                 egui::Stroke::new(3.0, egui::Color32::WHITE),
             );
         }
+        Gesture::PopOut => {
+            painter.rect_filled(source, 0.0, tint);
+            painter.rect_stroke(source, 0.0, line, egui::StrokeKind::Inside);
+            // A smaller outline offset from the area: "this becomes a window".
+            let window = source.shrink2(source.size() * 0.2).translate(egui::vec2(12.0, -12.0));
+            painter.rect_filled(window, 4.0, ui.visuals().panel_fill);
+            painter.rect_stroke(window, 4.0, line, egui::StrokeKind::Inside);
+        }
         Gesture::Swap { target_rect, .. } => {
             for r in [source, target_rect] {
                 painter.rect_filled(r, 0.0, tint);

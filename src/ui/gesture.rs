@@ -33,6 +33,7 @@ pub(super) struct Input<'a> {
     pub delta: egui::Vec2,
     pub pointer: egui::Pos2,
     pub ctrl: bool,
+    pub shift: bool,
     pub neighbour: Option<Neighbour>,
     /// The other area under the pointer, for swapping.
     pub hovered_other: Option<(NodeId, egui::Rect)>,
@@ -50,6 +51,8 @@ pub(super) enum Gesture {
     /// The dragged area grows over `target`, which is removed.
     Join { target: NodeId, target_rect: egui::Rect },
     Swap { target: NodeId, target_rect: egui::Rect },
+    /// Open a copy of the dragged area in a new window.
+    PopOut,
 }
 
 pub(super) fn classify(i: &Input) -> Gesture {
@@ -61,6 +64,9 @@ pub(super) fn classify(i: &Input) -> Gesture {
     }
     if i.delta.length() < DEAD_ZONE {
         return Gesture::Idle;
+    }
+    if i.shift {
+        return Gesture::PopOut;
     }
     let horizontal = i.delta.x.abs() >= i.delta.y.abs();
     let (along, inward_sign) = if horizontal { (i.delta.x, i.corner.inward_x()) } else { (i.delta.y, i.corner.inward_y()) };
@@ -131,6 +137,7 @@ mod tests {
             delta: egui::vec2(delta.0, delta.1),
             pointer: start + egui::vec2(delta.0, delta.1),
             ctrl: false,
+            shift: false,
             neighbour: None,
             hovered_other: None,
             snap_x: &[],
@@ -190,6 +197,18 @@ mod tests {
         assert_eq!(classify(&i), Gesture::Idle, "neighbour is on the other side");
         i.neighbour = None;
         assert_eq!(classify(&i), Gesture::Idle, "nothing to join");
+    }
+
+    #[test]
+    fn shift_drag_pops_the_area_out_once_moved() {
+        let mut i = input(Corner::TopLeft, (4.0, 3.0));
+        i.shift = true;
+        assert_eq!(classify(&i), Gesture::Idle, "still inside the dead zone");
+        let mut i = input(Corner::TopLeft, (100.0, 10.0));
+        i.shift = true;
+        assert_eq!(classify(&i), Gesture::PopOut, "shift wins over split, whichever way it is dragged");
+        i.delta = egui::vec2(-60.0, 0.0);
+        assert_eq!(classify(&i), Gesture::PopOut);
     }
 
     #[test]

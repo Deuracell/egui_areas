@@ -90,6 +90,7 @@ pub(super) fn handle_corner_drags(
                 Gesture::Split { .. } => DragMode::Split,
                 Gesture::Join { .. } => DragMode::Join,
                 Gesture::Swap { .. } => DragMode::Swap,
+                Gesture::PopOut => DragMode::PopOut,
             }));
         }
     }
@@ -113,8 +114,7 @@ fn current_gesture(
 ) -> Gesture {
     let Some(area) = rect_of(areas, drag.area) else { return Gesture::Idle };
     let pointer = ui.ctx().pointer_latest_pos().unwrap_or(drag.start);
-    let snapping = !ui.input(|i| i.modifiers.shift);
-    let coords = |axis| if snapping { divider_coords(&ws.tree, bounds, axis, None) } else { Vec::new() };
+    let coords = |axis| divider_coords(&ws.tree, bounds, axis, None);
     let (snap_x, snap_y) = (coords(Axis::Horizontal), coords(Axis::Vertical));
     classify(&Input {
         area,
@@ -122,6 +122,7 @@ fn current_gesture(
         delta: pointer - drag.start,
         pointer,
         ctrl: ui.input(|i| i.modifiers.ctrl),
+        shift: ui.input(|i| i.modifiers.shift),
         neighbour: neighbour_of(ws, drag.area, bounds),
         hovered_other: areas.iter().find(|&&(a, r)| a != drag.area && r.contains(pointer)).copied(),
         snap_x: &snap_x,
@@ -142,6 +143,7 @@ fn resolve(
         Gesture::Split { axis, ratio, .. } => Some(AreaAction::Split { area, axis, ratio }),
         Gesture::Join { .. } => Some(AreaAction::AbsorbNeighbour { area }),
         Gesture::Swap { target, .. } => Some(AreaAction::SwapWith { area, other: target }),
+        Gesture::PopOut => Some(AreaAction::PopOut { area }),
     }
 }
 
