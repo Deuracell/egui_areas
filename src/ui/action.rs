@@ -15,6 +15,9 @@ pub(super) enum AreaAction {
     /// Remove `area`'s neighbour; `area` expands into the space.
     AbsorbNeighbour { area: NodeId },
     ToggleMaximize { area: NodeId },
+    /// Show a copy of `area`'s editor in a new window. Changes no tree: the
+    /// host opens the window.
+    PopOut { area: NodeId },
 }
 
 pub(super) fn apply(ws: &mut Workspace, action: AreaAction) -> Result<(), OpError> {
@@ -31,6 +34,7 @@ pub(super) fn apply(ws: &mut Workspace, action: AreaAction) -> Result<(), OpErro
             join_areas(&mut ws.tree, area, neighbour)
         }
         AreaAction::ToggleMaximize { area } => toggle_maximize(ws, area),
+        AreaAction::PopOut { .. } => Ok(()),
     }
 }
 

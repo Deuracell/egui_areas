@@ -60,6 +60,12 @@ pub fn show_workspace(
             }
             _ => None,
         };
+        if let AreaAction::PopOut { area } = &a {
+            if let Some(area) = workspace.tree.area(*area) {
+                host.request_pop_out(&area.kind);
+            }
+            continue;
+        }
         // An earlier action this frame may have made this one stale (its area
         // is gone); the tree refuses it unchanged, so it is simply dropped.
         let result = action::apply(workspace, a);

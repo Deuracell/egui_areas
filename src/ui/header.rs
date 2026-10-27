@@ -95,4 +95,6 @@ fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaActi
     ui.separator();
     let label = if info.maximized { "Restore" } else { "Maximize" };
     choose(ui, true, label, AreaAction::ToggleMaximize { area });
+    ui.separator();
+    choose(ui, true, "Open in new window", AreaAction::PopOut { area });
 }
