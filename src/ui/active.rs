@@ -23,7 +23,8 @@ impl ActiveArea {
 
     /// Call once per frame, before the areas are drawn, so every area sees the
     /// same answer. `bounds` is where the workspace is drawn. Focus stays put
-    /// while a pointer button is down or an editor holds it, so a drag that
+    /// while a button is held (`button_down` excludes the frame of the press, so
+    /// the area pressed on takes focus) or an editor holds it, so a drag that
     /// leaves its area does not hand focus to the area it passes over.
     pub(super) fn update(&mut self, ws: &Workspace, bounds: egui::Rect, pointer: Option<egui::Pos2>, button_down: bool) {
         let locked = (button_down || self.held) && self.area.is_some();

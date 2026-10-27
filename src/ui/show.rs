@@ -1,7 +1,7 @@
 use super::action::{self, AreaAction};
 use super::active::ActiveArea;
 use super::area::draw_area;
-use super::corner_drag::handle_corner_drags;
+use super::corner_drag::{cancel_on_escape, handle_corner_drags};
 use super::dividers::{GAP, interact_dividers, paint_dividers};
 use super::hint::TilingHint;
 use super::header::HeaderInfo;
@@ -20,8 +20,9 @@ pub fn show_workspace(
     active: &mut ActiveArea,
     host: &mut dyn AreaHost,
 ) -> TilingHint {
+    cancel_on_escape(ui);
     let bounds = ui.available_rect_before_wrap();
-    active.update(workspace, bounds, ui.input(|i| i.pointer.hover_pos()), ui.input(|i| i.pointer.any_down()));
+    active.update(workspace, bounds, ui.input(|i| i.pointer.hover_pos()), ui.input(|i| i.pointer.any_down() && !i.pointer.any_pressed()));
     let maximized = workspace.maximized().is_some();
     let mut actions = Vec::new();
     let mut drawn = Vec::new();
@@ -59,9 +60,9 @@ pub fn show_workspace(
             }
             _ => None,
         };
-        // Header menus only offer actions that are valid for the current tree.
+        // An earlier action this frame may have made this one stale (its area
+        // is gone); the tree refuses it unchanged, so it is simply dropped.
         let result = action::apply(workspace, a);
-        debug_assert!(result.is_ok(), "area action refused: {result:?}");
         if let (Ok(()), Some(heir)) = (result, heir) {
             active.set(heir);
         }

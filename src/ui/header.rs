@@ -85,11 +85,13 @@ fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaActi
             ui.close();
         }
     };
-    choose(ui, true, "Split into Left | Right", AreaAction::Split { area, axis: Axis::Horizontal, ratio: 0.5 });
-    choose(ui, true, "Split into Top / Bottom", AreaAction::Split { area, axis: Axis::Vertical, ratio: 0.5 });
+    // Layout changes are invisible while an area is maximized.
+    let layout = !info.maximized;
+    choose(ui, layout, "Split into Left | Right", AreaAction::Split { area, axis: Axis::Horizontal, ratio: 0.5 });
+    choose(ui, layout, "Split into Top / Bottom", AreaAction::Split { area, axis: Axis::Vertical, ratio: 0.5 });
     ui.separator();
-    choose(ui, info.can_absorb, "Absorb neighbour", AreaAction::AbsorbNeighbour { area });
-    choose(ui, info.can_merge, "Merge into neighbour", AreaAction::MergeIntoNeighbour { area });
+    choose(ui, layout && info.can_absorb, "Absorb neighbour", AreaAction::AbsorbNeighbour { area });
+    choose(ui, layout && info.can_merge, "Merge into neighbour", AreaAction::MergeIntoNeighbour { area });
     ui.separator();
     let label = if info.maximized { "Restore" } else { "Maximize" };
     choose(ui, true, label, AreaAction::ToggleMaximize { area });

@@ -26,6 +26,17 @@ fn memory_id() -> egui::Id {
     egui::Id::new("workspace_corner_drag")
 }
 
+/// Takes Esc away from the areas while a corner gesture is under way and marks
+/// the gesture cancelled. Call before the areas are drawn: editors read keys
+/// while drawing, and Esc must not also cancel a tool they have in progress.
+pub(super) fn cancel_on_escape(ui: &egui::Ui) {
+    let Some(mut drag) = ui.data(|d| d.get_temp::<Drag>(memory_id())) else { return };
+    if !drag.cancelled && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
+        drag.cancelled = true;
+        ui.data_mut(|d| d.insert_temp(memory_id(), drag));
+    }
+}
+
 /// Registers corner grab zones, runs the active gesture, and queues its result.
 /// Call after the areas are drawn so the zones sit on top of their contents.
 /// Returns what the status bar should tell the user, if anything.
@@ -64,9 +75,6 @@ pub(super) fn handle_corner_drags(
 
     let mut hint = hovering.then_some(TilingHint::Corner);
     if let Some(d) = drag.as_mut() {
-        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-            d.cancelled = true;
-        }
         if d.cancelled {
             hint = None;
         } else {
