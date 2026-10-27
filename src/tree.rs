@@ -87,6 +87,14 @@ impl Tree {
         self.areas().iter().filter_map(|&a| self.area(a)).map(|a| a.view).collect()
     }
 
+    /// The first (left/top) area at or under `id`.
+    pub fn first_area(&self, id: NodeId) -> Option<NodeId> {
+        match self.node(id)? {
+            Node::Area(_) => Some(id),
+            Node::Split { first, .. } => self.first_area(*first),
+        }
+    }
+
     // ---- mutation primitives for ops and deserialization ----
 
     pub(crate) fn unrooted() -> Self {

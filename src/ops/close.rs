@@ -65,6 +65,17 @@ mod tests {
     }
 
     #[test]
+    fn first_area_descends_to_the_left_top_leaf() {
+        let mut tree = Tree::single(k());
+        let a = tree.root();
+        let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k()).unwrap();
+        split_area(&mut tree, b, Axis::Vertical, 0.5, k()).unwrap();
+        assert_eq!(tree.first_area(tree.root()), Some(a));
+        assert_eq!(tree.first_area(tree.parent(b).unwrap()), Some(b));
+        assert_eq!(tree.first_area(b), Some(b));
+    }
+
+    #[test]
     fn last_area_cannot_be_closed() {
         let mut tree = Tree::single(k());
         let a = tree.root();

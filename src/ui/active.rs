@@ -39,6 +39,11 @@ impl ActiveArea {
         }
     }
 
+    /// Hands focus to `area`, e.g. the one that took over a closed neighbour's space.
+    pub(super) fn set(&mut self, area: NodeId) {
+        self.area = Some(area);
+    }
+
     /// Records, after the areas are drawn, whether the active one is mid-operation.
     pub(super) fn set_held(&mut self, held: bool) {
         self.held = held;

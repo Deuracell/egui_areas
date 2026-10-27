@@ -1,4 +1,4 @@
-use super::action;
+use super::action::{self, AreaAction};
 use super::active::ActiveArea;
 use super::area::draw_area;
 use super::corner_drag::handle_corner_drags;
@@ -52,9 +52,19 @@ pub fn show_workspace(
     shortcuts::collect(ui, active, &mut actions);
 
     for a in actions {
+        // When the active area is closed, focus goes to whoever takes its space.
+        let heir = match &a {
+            AreaAction::MergeIntoNeighbour { area } if active.is(*area) => {
+                workspace.tree.sibling(*area).and_then(|s| workspace.tree.first_area(s))
+            }
+            _ => None,
+        };
         // Header menus only offer actions that are valid for the current tree.
         let result = action::apply(workspace, a);
         debug_assert!(result.is_ok(), "area action refused: {result:?}");
+        if let (Ok(()), Some(heir)) = (result, heir) {
+            active.set(heir);
+        }
     }
     hint
 }
