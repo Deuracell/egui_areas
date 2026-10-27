@@ -62,7 +62,19 @@ pub(super) fn draw_header(
         strip.label(egui::RichText::new(note).small().weak());
     }
     strip.set_clip_rect(rect.intersect(ui.clip_rect()));
-    host.show_header_extras(&mut strip, area, info.view, kind, active);
+    egui::ScrollArea::horizontal()
+        .id_salt(("header_scroll", area))
+        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+        .drag_to_scroll(false)
+        .auto_shrink([false, false])
+        .show(&mut strip, |ui| {
+            // Mouse wheel over the header scrolls controls that do not fit.
+            let wheel = ui.input(|i| i.smooth_scroll_delta.y);
+            if wheel != 0.0 && ui.rect_contains_pointer(ui.clip_rect()) {
+                ui.scroll_with_delta(egui::vec2(wheel, 0.0));
+            }
+            host.show_header_extras(ui, area, info.view, kind, active);
+        });
 }
 
 fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaAction>) {
