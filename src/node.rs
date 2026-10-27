@@ -1,4 +1,4 @@
-use crate::{EditorKind, NodeId};
+use crate::{EditorKind, NodeId, ViewId};
 use serde::{Deserialize, Serialize};
 
 /// Direction in which a split lays out its two children.
@@ -11,10 +11,11 @@ pub enum Axis {
     Vertical,
 }
 
-/// A leaf of the tree: one editor.
+/// A leaf of the tree: one editor and the key of its view state.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Area {
     pub kind: EditorKind,
+    pub view: ViewId,
 }
 
 #[derive(Clone, Debug, PartialEq)]

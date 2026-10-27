@@ -27,7 +27,10 @@ fn to_def(tree: &Tree, id: NodeId) -> NodeDef {
 
 fn build(tree: &mut Tree, def: NodeDef) -> NodeId {
     match def {
-        NodeDef::Area { kind } => tree.insert(Node::Area(Area { kind }), None),
+        NodeDef::Area { kind } => {
+            let view = tree.new_view();
+            tree.insert(Node::Area(Area { kind, view }), None)
+        }
         NodeDef::Split { axis, ratio, first, second } => {
             let first = build(tree, *first);
             let second = build(tree, *second);
@@ -82,6 +85,12 @@ mod tests {
         };
         assert_eq!(kinds(&back.tree), kinds(&tree));
         assert_eq!(kinds(&tree), ["sketch_2d", "properties", "status"]);
+
+        // Views are not stored; a loaded tree gets fresh, distinct ones.
+        let mut views = back.tree.view_ids();
+        views.sort();
+        views.dedup();
+        assert_eq!(views.len(), 3);
     }
 
     #[test]

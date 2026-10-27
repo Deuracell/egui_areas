@@ -43,6 +43,17 @@ mod tests {
     }
 
     #[test]
+    fn closing_drops_the_view() {
+        let mut tree = Tree::single(k());
+        let a = tree.root();
+        let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k()).unwrap();
+        let (view_a, view_b) = (tree.area(a).unwrap().view, tree.area(b).unwrap().view);
+        close_area(&mut tree, b).unwrap();
+        assert_eq!(tree.view_ids(), vec![view_a]);
+        assert!(!tree.view_ids().contains(&view_b));
+    }
+
+    #[test]
     fn sibling_subtree_expands() {
         let mut tree = Tree::single(k());
         let a = tree.root();

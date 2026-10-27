@@ -15,7 +15,7 @@ pub mod workspace;
 
 pub use editor_kind::EditorKind;
 pub use error::OpError;
-pub use ids::NodeId;
+pub use ids::{NodeId, ViewId};
 pub use layout::{Rect, SplitRect};
 pub use node::{Area, Axis, Node};
 pub use tree::Tree;

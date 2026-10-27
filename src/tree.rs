@@ -1,4 +1,4 @@
-use crate::{Area, EditorKind, Node, NodeId};
+use crate::{Area, EditorKind, Node, NodeId, ViewId};
 use slotmap::SlotMap;
 
 #[derive(Clone, Debug)]
@@ -13,13 +13,15 @@ struct Slot {
 pub struct Tree {
     slots: SlotMap<NodeId, Slot>,
     root: NodeId,
+    next_view: u64,
 }
 
 impl Tree {
     /// A tree with a single area filling everything.
     pub fn single(kind: EditorKind) -> Self {
         let mut tree = Self::unrooted();
-        let root = tree.insert(Node::Area(Area { kind }), None);
+        let view = tree.new_view();
+        let root = tree.insert(Node::Area(Area { kind, view }), None);
         tree.set_root(root);
         tree
     }
@@ -80,10 +82,21 @@ impl Tree {
         }
     }
 
+    /// The view keys of all areas, in the same order as [`Tree::areas`].
+    pub fn view_ids(&self) -> Vec<ViewId> {
+        self.areas().iter().filter_map(|&a| self.area(a)).map(|a| a.view).collect()
+    }
+
     // ---- mutation primitives for ops and deserialization ----
 
     pub(crate) fn unrooted() -> Self {
-        Self { slots: SlotMap::with_key(), root: NodeId::default() }
+        Self { slots: SlotMap::with_key(), root: NodeId::default(), next_view: 0 }
+    }
+
+    /// A view key never handed out before by this tree.
+    pub(crate) fn new_view(&mut self) -> ViewId {
+        self.next_view += 1;
+        ViewId(self.next_view)
     }
 
     pub(crate) fn insert(&mut self, node: Node, parent: Option<NodeId>) -> NodeId {

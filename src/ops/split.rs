@@ -3,7 +3,7 @@ use crate::{Area, Axis, EditorKind, Node, NodeId, OpError, Tree};
 
 /// Splits `area` in two along `axis`. `area` keeps its id and becomes the
 /// first (left/top) half, taking `ratio` of the space; the new area, showing
-/// `new_kind`, is returned.
+/// `new_kind` with a fresh view, is returned.
 pub fn split_area(
     tree: &mut Tree,
     area: NodeId,
@@ -20,7 +20,8 @@ pub fn split_area(
     let ratio = clamp_ratio(ratio)?;
 
     let old_parent = tree.parent(area);
-    let new_leaf = tree.insert(Node::Area(Area { kind: new_kind }), None);
+    let view = tree.new_view();
+    let new_leaf = tree.insert(Node::Area(Area { kind: new_kind, view }), None);
     let split = tree.insert(Node::Split { axis, ratio, first: area, second: new_leaf }, old_parent);
     tree.set_parent(area, Some(split));
     tree.set_parent(new_leaf, Some(split));
@@ -48,6 +49,16 @@ mod tests {
         assert_eq!(tree.areas(), vec![a, b]);
         assert_ne!(tree.root(), a);
         assert_eq!(tree.sibling(a), Some(b));
+    }
+
+    #[test]
+    fn split_gives_new_area_a_fresh_view() {
+        let mut tree = Tree::single(k("a"));
+        let a = tree.root();
+        let before = tree.area(a).unwrap().view;
+        let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
+        assert_eq!(tree.area(a).unwrap().view, before);
+        assert_ne!(tree.area(b).unwrap().view, before);
     }
 
     #[test]

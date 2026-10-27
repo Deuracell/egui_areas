@@ -1,6 +1,7 @@
 use crate::{NodeId, OpError, Tree};
 
-/// Exchanges what two areas show. Positions and ids stay put; only the editors move.
+/// Exchanges what two areas show, view state included. Positions and ids stay
+/// put; only the editors (with their views) move.
 pub fn swap_areas(tree: &mut Tree, a: NodeId, b: NodeId) -> Result<(), OpError> {
     if a == b {
         return Err(OpError::SameArea);
@@ -13,9 +14,9 @@ pub fn swap_areas(tree: &mut Tree, a: NodeId, b: NodeId) -> Result<(), OpError> 
             return Err(OpError::NotAnArea(id));
         }
     }
-    let kind_a = tree.area(a).expect("checked").kind.clone();
-    let kind_b = std::mem::replace(&mut tree.area_mut(b).expect("checked").kind, kind_a);
-    tree.area_mut(a).expect("checked").kind = kind_b;
+    let area_a = tree.area(a).expect("checked").clone();
+    let area_b = std::mem::replace(tree.area_mut(b).expect("checked"), area_a);
+    *tree.area_mut(a).expect("checked") = area_b;
     Ok(())
 }
 
@@ -29,7 +30,10 @@ mod tests {
         let mut tree = Tree::single(EditorKind::new("sketch"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, EditorKind::new("props")).unwrap();
+        let (view_a, view_b) = (tree.area(a).unwrap().view, tree.area(b).unwrap().view);
         swap_areas(&mut tree, a, b).unwrap();
+        assert_eq!(tree.area(a).unwrap().view, view_b, "views travel with their editor");
+        assert_eq!(tree.area(b).unwrap().view, view_a);
         assert_eq!(tree.area(a).unwrap().kind.id(), "props");
         assert_eq!(tree.area(b).unwrap().kind.id(), "sketch");
         assert_eq!(tree.areas(), vec![a, b]);
