@@ -140,6 +140,9 @@ fn current_gesture(
 
 /// Where the area covering the joined stretch would end up, found by trying the
 /// join on a copy. `None` if the join would be refused.
+///
+/// Known inefficiency (see "Performance notes" in docs/workspace_design.md): this
+/// clones the tree and rebuilds it every frame of a join drag, and again on release.
 fn join_result(ws: &Workspace, bounds: egui::Rect, area: NodeId, target: NodeId) -> Option<egui::Rect> {
     let mut trial = ws.tree.clone();
     let survivor = absorb_across(&mut trial, area, target).ok()?;
