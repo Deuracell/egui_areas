@@ -24,6 +24,13 @@ impl Workspace {
         Self { name: name.into(), mode: None, mode_default: false, tree, maximized: None }
     }
 
+    /// Swaps in a whole new tree. Ends maximization: area ids of the old tree
+    /// mean nothing in the new one, though they may look like valid ids.
+    pub fn replace_tree(&mut self, tree: Tree) {
+        self.tree = tree;
+        self.maximized = None;
+    }
+
     /// The maximized area, if it still exists. Closing or joining the area
     /// away silently ends maximization.
     pub fn maximized(&self) -> Option<NodeId> {

@@ -6,7 +6,7 @@ use crate::{Area, Axis, Node, NodeId, Rect, Tree};
 /// Tolerance when comparing edge positions in unit space.
 pub(super) const EPS: f32 = 1e-4;
 
-fn span(r: Rect, axis: Axis) -> (f32, f32) {
+pub(super) fn span(r: Rect, axis: Axis) -> (f32, f32) {
     match axis {
         Axis::Horizontal => (r.x, r.x + r.w),
         Axis::Vertical => (r.y, r.y + r.h),
@@ -43,7 +43,7 @@ fn node(tree: &mut Tree, mut items: Vec<(Area, Rect)>, bounds: Rect) -> Option<N
             }
             let raw = (cut - lo) / (hi - lo);
             // A split cannot be thinner than the minimum ratio; refuse such a layout.
-            let ratio = clamp_ratio(raw).ok().filter(|r| (r - raw).abs() < EPS)?;
+            let Some(ratio) = clamp_ratio(raw).ok().filter(|r| (r - raw).abs() < EPS) else { continue };
             let (b1, b2) = bounds.split(axis, ratio);
             let first = node(tree, first, b1)?;
             let second = node(tree, second, b2)?;
@@ -86,6 +86,20 @@ mod tests {
     fn a_sliver_thinner_than_the_minimum_ratio_is_refused() {
         let items = vec![(area("a"), r(0.0, 0.0, 0.02, 1.0)), (area("b"), r(0.02, 0.0, 0.98, 1.0))];
         assert!(tree_from_rects(items).is_none());
+    }
+
+    #[test]
+    fn a_thin_first_cut_does_not_hide_a_valid_later_one() {
+        // Full-height strips with edges at 0.04 and 0.5. Cutting at 0.04 first
+        // would be a 4 % sliver; cutting at 0.5 first leaves a valid 8 % split inside.
+        let items = vec![
+            (area("a"), r(0.0, 0.0, 0.04, 1.0)),
+            (area("b"), r(0.04, 0.0, 0.46, 1.0)),
+            (area("d"), r(0.5, 0.0, 0.5, 1.0)),
+        ];
+        let tree = tree_from_rects(items).expect("a valid cut order exists");
+        tree.assert_valid();
+        assert_eq!(tree.areas().len(), 3);
     }
 
     #[test]

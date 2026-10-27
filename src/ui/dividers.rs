@@ -1,4 +1,4 @@
-use super::pixels::to_pixels;
+use super::pixels::{CORNER_HOTSPOT, to_pixels};
 use super::snap::{divider_coords, nearest};
 use crate::layout::{SplitRect, split_rects};
 use crate::ops::resize_split;
@@ -33,7 +33,12 @@ fn divider_rect(s: &SplitRect, bounds: egui::Rect, width: f32) -> egui::Rect {
 /// Grab zone for a divider. It lives in its own layer above the areas, so it
 /// wins over whatever an area draws at its edge.
 fn divider_response(ui: &egui::Ui, s: &SplitRect, bounds: egui::Rect) -> egui::Response {
-    let hit = divider_rect(s, bounds, HIT_WIDTH);
+    // Stops short of the ends, where area corners with their own grab zones meet it.
+    let full = divider_rect(s, bounds, HIT_WIDTH);
+    let hit = match s.axis {
+        Axis::Horizontal => full.shrink2(egui::vec2(0.0, CORNER_HOTSPOT)),
+        Axis::Vertical => full.shrink2(egui::vec2(CORNER_HOTSPOT, 0.0)),
+    };
     egui::Area::new(ui.id().with(("divider_area", s.id)))
         .order(egui::Order::Middle)
         .fixed_pos(hit.min)

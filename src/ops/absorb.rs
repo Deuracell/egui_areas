@@ -1,4 +1,4 @@
-use super::rebuild::{EPS, tree_from_rects};
+use super::rebuild::{EPS, span, tree_from_rects};
 use crate::layout::area_rects;
 use crate::{Area, Axis, NodeId, OpError, Rect, Tree};
 
@@ -6,13 +6,6 @@ fn other(axis: Axis) -> Axis {
     match axis {
         Axis::Horizontal => Axis::Vertical,
         Axis::Vertical => Axis::Horizontal,
-    }
-}
-
-fn span(r: Rect, axis: Axis) -> (f32, f32) {
-    match axis {
-        Axis::Horizontal => (r.x, r.x + r.w),
-        Axis::Vertical => (r.y, r.y + r.h),
     }
 }
 

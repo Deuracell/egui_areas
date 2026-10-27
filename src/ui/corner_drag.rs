@@ -6,15 +6,13 @@ use super::corner::Corner;
 use super::gesture::{Gesture, Input, Neighbour, Side, classify};
 use super::hint::{DragMode, TilingHint};
 use super::overlay::paint_gesture;
-use super::pixels::to_pixels;
+use super::pixels::{CORNER_HOTSPOT, to_pixels};
 use super::snap::divider_coords;
 use super::dividers::GAP;
 use crate::layout::area_rects;
 use crate::ops::absorb_across;
 use crate::{Axis, NodeId, Rect, Workspace};
 
-/// Side of the square grab zone at each area corner.
-const HOTSPOT: f32 = 12.0;
 
 #[derive(Clone, Copy)]
 struct Drag {
@@ -56,7 +54,7 @@ pub(super) fn handle_corner_drags(
     for &(area, rect) in areas {
         for corner in Corner::ALL {
             let id = ui.id().with(("corner", area, corner));
-            let response = ui.interact(corner.hotspot(rect, HOTSPOT), id, egui::Sense::drag());
+            let response = ui.interact(corner.hotspot(rect, CORNER_HOTSPOT), id, egui::Sense::drag());
             if response.hovered() || response.dragged() {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
                 hovering = true;

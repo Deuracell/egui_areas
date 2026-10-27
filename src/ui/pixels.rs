@@ -7,3 +7,7 @@ pub(super) fn to_pixels(r: Rect, bounds: egui::Rect) -> egui::Rect {
         egui::vec2(r.w * bounds.width(), r.h * bounds.height()),
     )
 }
+
+/// Side of the square grab zone at each area corner. Dividers stop this far
+/// short of their ends so the corners beside them stay grabbable.
+pub(super) const CORNER_HOTSPOT: f32 = 12.0;

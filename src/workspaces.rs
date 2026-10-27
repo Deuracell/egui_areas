@@ -52,7 +52,11 @@ impl TryFrom<WorkspacesDef> for Workspaces {
     /// active index is clamped, repeated mode defaults are reduced to the first.
     fn try_from(def: WorkspacesDef) -> Result<Self, String> {
         let mut items = def.workspaces.into_iter();
-        let first = items.next().ok_or("a layout file needs at least one layout")?;
+        let mut first = items.next().ok_or("a layout file needs at least one layout")?;
+        first.name = match first.name.trim() {
+            "" => "Layout".to_string(),
+            name => name.to_string(),
+        };
         let mut set = Workspaces::new(first);
         for mut ws in items {
             ws.name = set.unique_name(&ws.name);
@@ -356,6 +360,8 @@ mod tests {
         "#;
         let loaded: Workspaces = toml::from_str(messy).unwrap();
         assert_eq!(names(&loaded), ["X", "X 2"]);
+        let blank = messy.replacen("name = \"X\"", "name = \"  \"", 1);
+        assert_eq!(names(&toml::from_str::<Workspaces>(&blank).unwrap()), ["Layout", "X"]);
         assert_eq!(loaded.active_index(), 1);
         assert!(toml::from_str::<Workspaces>("workspaces = []").is_err());
     }

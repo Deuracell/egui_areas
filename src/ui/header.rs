@@ -86,7 +86,6 @@ fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaActi
     choose(ui, layout, "Split into Left | Right", AreaAction::Split { area, axis: Axis::Horizontal, ratio: 0.5 });
     choose(ui, layout, "Split into Top / Bottom", AreaAction::Split { area, axis: Axis::Vertical, ratio: 0.5 });
     ui.separator();
-    ui.separator();
     let label = if info.maximized { "Restore" } else { "Maximize" };
     choose(ui, true, label, AreaAction::ToggleMaximize { area });
     ui.separator();
