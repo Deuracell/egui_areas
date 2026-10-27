@@ -1,5 +1,8 @@
 use crate::{Area, EditorKind, Node, NodeId, ViewId};
 use slotmap::SlotMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_VIEW: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Debug)]
 struct Slot {
@@ -13,7 +16,6 @@ struct Slot {
 pub struct Tree {
     slots: SlotMap<NodeId, Slot>,
     root: NodeId,
-    next_view: u64,
 }
 
 impl Tree {
@@ -98,13 +100,26 @@ impl Tree {
     // ---- mutation primitives for ops and deserialization ----
 
     pub(crate) fn unrooted() -> Self {
-        Self { slots: SlotMap::with_key(), root: NodeId::default(), next_view: 0 }
+        Self { slots: SlotMap::with_key(), root: NodeId::default() }
     }
 
-    /// A view key never handed out before by this tree.
-    pub(crate) fn new_view(&mut self) -> ViewId {
-        self.next_view += 1;
-        ViewId(self.next_view)
+    /// A view key never handed out before, by any tree: workspaces share one
+    /// store of view state, so keys must not collide across trees.
+    pub(crate) fn new_view(&self) -> ViewId {
+        ViewId(NEXT_VIEW.fetch_add(1, Ordering::Relaxed))
+    }
+
+    /// Gives every area a fresh view key. For a copy of a tree, whose keys
+    /// would otherwise be shared with the original.
+    pub(crate) fn refresh_views(&mut self) {
+        let fresh: Vec<ViewId> = self.slots.values().map(|_| self.new_view()).collect();
+        let mut fresh = fresh.into_iter();
+        for slot in self.slots.values_mut() {
+            let view = fresh.next().expect("one key per slot");
+            if let Node::Area(a) = &mut slot.node {
+                a.view = view;
+            }
+        }
     }
 
     pub(crate) fn insert(&mut self, node: Node, parent: Option<NodeId>) -> NodeId {

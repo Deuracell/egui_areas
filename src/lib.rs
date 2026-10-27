@@ -12,6 +12,7 @@ pub mod tree;
 mod tree_def;
 pub mod ui;
 pub mod workspace;
+pub mod workspaces;
 
 pub use editor_kind::EditorKind;
 pub use error::OpError;
@@ -20,3 +21,4 @@ pub use layout::{Rect, SplitRect};
 pub use node::{Area, Axis, Node};
 pub use tree::Tree;
 pub use workspace::Workspace;
+pub use workspaces::{Workspaces, WorkspacesError};

@@ -6,6 +6,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Workspace {
     pub name: String,
+    /// The kind of work this layout suits (an open string such as `"sketch"`),
+    /// if any. The crate does not know what modes exist.
+    #[serde(default)]
+    pub mode: Option<String>,
+    /// The layout used for its `mode` when several are tagged with it.
+    #[serde(default)]
+    pub mode_default: bool,
     pub tree: Tree,
     /// Not persisted: a workspace always reopens un-maximized.
     #[serde(skip)]
@@ -14,7 +21,7 @@ pub struct Workspace {
 
 impl Workspace {
     pub fn new(name: impl Into<String>, tree: Tree) -> Self {
-        Self { name: name.into(), tree, maximized: None }
+        Self { name: name.into(), mode: None, mode_default: false, tree, maximized: None }
     }
 
     /// The maximized area, if it still exists. Closing or joining the area
