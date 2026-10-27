@@ -18,6 +18,13 @@ pub trait AreaHost {
     /// `view` keys the area's view state (it follows the editor through swaps).
     fn show_header_extras(&mut self, ui: &mut egui::Ui, area: NodeId, view: ViewId, kind: &EditorKind, active: bool);
 
+    /// Whether `area`'s editor is in the middle of an operation (a tool half
+    /// done, a drag). While true, the pointer leaving the area does not move
+    /// focus to another one. Asked after the areas are drawn.
+    fn holds_focus(&self, _area: NodeId) -> bool {
+        false
+    }
+
     /// Draws the editor for `area` into `ui`, which spans exactly the area's
     /// body. `active` is true for the one area the user is working in.
     fn show_editor(&mut self, ui: &mut egui::Ui, area: NodeId, view: ViewId, kind: &EditorKind, active: bool);

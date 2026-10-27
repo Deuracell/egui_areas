@@ -5,29 +5,43 @@ use crate::{NodeId, Rect, Workspace};
 /// while the pointer is elsewhere (menu bar, status bar, another window).
 /// One source of truth for shortcut routing and context-sensitive UI.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ActiveArea(Option<NodeId>);
+pub struct ActiveArea {
+    area: Option<NodeId>,
+    /// While set, the pointer cannot move focus to another area: an operation
+    /// is in progress there (see [`AreaHost::holds_focus`](super::AreaHost::holds_focus)).
+    held: bool,
+}
 
 impl ActiveArea {
     pub fn get(&self) -> Option<NodeId> {
-        self.0
+        self.area
     }
 
     pub fn is(&self, area: NodeId) -> bool {
-        self.0 == Some(area)
+        self.area == Some(area)
     }
 
     /// Call once per frame, before the areas are drawn, so every area sees the
-    /// same answer. `bounds` is where the workspace is drawn.
-    pub(super) fn update(&mut self, ws: &Workspace, bounds: egui::Rect, pointer: Option<egui::Pos2>) {
-        if let Some(p) = pointer {
+    /// same answer. `bounds` is where the workspace is drawn. Focus stays put
+    /// while a pointer button is down or an editor holds it, so a drag that
+    /// leaves its area does not hand focus to the area it passes over.
+    pub(super) fn update(&mut self, ws: &Workspace, bounds: egui::Rect, pointer: Option<egui::Pos2>, button_down: bool) {
+        let locked = (button_down || self.held) && self.area.is_some();
+        if let (Some(p), false) = (pointer, locked) {
             let hit = ws.visible_areas(Rect::UNIT).into_iter().find(|&(_, r)| to_pixels(r, bounds).contains(p));
             if let Some((id, _)) = hit {
-                self.0 = Some(id);
+                self.area = Some(id);
             }
         }
-        if self.0.is_some_and(|id| ws.tree.area(id).is_none()) {
-            self.0 = None; // the active area was closed
+        if self.area.is_some_and(|id| ws.tree.area(id).is_none()) {
+            self.area = None; // the active area was closed
+            self.held = false;
         }
+    }
+
+    /// Records, after the areas are drawn, whether the active one is mid-operation.
+    pub(super) fn set_held(&mut self, held: bool) {
+        self.held = held;
     }
 }
 
@@ -49,23 +63,40 @@ mod tests {
     fn follows_pointer_and_sticks_when_it_leaves() {
         let (ws, a, b, bounds) = setup();
         let mut active = ActiveArea::default();
-        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)));
+        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)), false);
         assert!(active.is(a));
-        active.update(&ws, bounds, Some(egui::pos2(90.0, 50.0)));
+        active.update(&ws, bounds, Some(egui::pos2(90.0, 50.0)), false);
         assert!(active.is(b));
-        active.update(&ws, bounds, Some(egui::pos2(500.0, 500.0)));
+        active.update(&ws, bounds, Some(egui::pos2(500.0, 500.0)), false);
         assert!(active.is(b), "pointer outside the workspace keeps the last area");
-        active.update(&ws, bounds, None);
+        active.update(&ws, bounds, None, false);
         assert!(active.is(b));
+    }
+
+    #[test]
+    fn focus_stays_while_a_button_is_down_or_held() {
+        let (ws, a, b, bounds) = setup();
+        let mut active = ActiveArea::default();
+        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)), false);
+        active.update(&ws, bounds, Some(egui::pos2(90.0, 50.0)), true);
+        assert!(active.is(a), "dragging across areas keeps the pressed one");
+        active.update(&ws, bounds, Some(egui::pos2(90.0, 50.0)), false);
+        assert!(active.is(b), "released: follows the pointer again");
+        active.set_held(true);
+        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)), false);
+        assert!(active.is(b), "an editor mid-operation keeps focus");
+        active.set_held(false);
+        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)), false);
+        assert!(active.is(a));
     }
 
     #[test]
     fn closed_area_is_dropped() {
         let (mut ws, _, b, bounds) = setup();
         let mut active = ActiveArea::default();
-        active.update(&ws, bounds, Some(egui::pos2(90.0, 50.0)));
+        active.update(&ws, bounds, Some(egui::pos2(90.0, 50.0)), false);
         close_area(&mut ws.tree, b).unwrap();
-        active.update(&ws, bounds, None);
+        active.update(&ws, bounds, None, false);
         assert_eq!(active.get(), None);
     }
 
@@ -74,7 +105,7 @@ mod tests {
         let (mut ws, a, b, bounds) = setup();
         maximize_area(&mut ws, b).unwrap();
         let mut active = ActiveArea::default();
-        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)));
+        active.update(&ws, bounds, Some(egui::pos2(10.0, 50.0)), false);
         assert!(active.is(b) && !active.is(a));
     }
 }

@@ -21,7 +21,7 @@ pub fn show_workspace(
     host: &mut dyn AreaHost,
 ) -> TilingHint {
     let bounds = ui.available_rect_before_wrap();
-    active.update(workspace, bounds, ui.input(|i| i.pointer.hover_pos()));
+    active.update(workspace, bounds, ui.input(|i| i.pointer.hover_pos()), ui.input(|i| i.pointer.any_down()));
     let maximized = workspace.maximized().is_some();
     let mut actions = Vec::new();
     let mut drawn = Vec::new();
@@ -42,6 +42,7 @@ pub fn show_workspace(
         draw_area(ui, rect, id, &kind, &info, active.is(id), host, &mut actions);
         drawn.push((id, rect));
     }
+    active.set_held(active.get().is_some_and(|a| host.holds_focus(a)));
     if !maximized {
         paint_dividers(ui, &workspace.tree, bounds, &dividers);
         if let Some(h) = handle_corner_drags(ui, workspace, bounds, &drawn, &mut actions) {
