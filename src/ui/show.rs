@@ -63,7 +63,11 @@ pub fn show_workspace(
         // An earlier action this frame may have made this one stale (its area
         // is gone); the tree refuses it unchanged, so it is simply dropped.
         if let Ok(Some(focus)) = action::apply(workspace, a) {
+            // The tree was rebuilt, so ids held by actions still waiting (and by
+            // the maximized marker) may now name other areas: drop them.
             active.set(focus);
+            workspace.maximized = None;
+            break;
         }
     }
     hint

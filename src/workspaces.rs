@@ -162,6 +162,10 @@ impl Workspaces {
     /// Tags the layout with the kind of work it suits, or clears the tag.
     pub fn set_mode(&mut self, index: usize, mode: Option<String>) -> Result<(), WorkspacesError> {
         self.check(index)?;
+        if self.workspaces[index].mode != mode {
+            // Being the default of the old mode says nothing about the new one.
+            self.workspaces[index].mode_default = false;
+        }
         self.workspaces[index].mode = mode;
         self.normalize_defaults();
         Ok(())
@@ -320,6 +324,12 @@ mod tests {
         assert_eq!(set.for_mode("assembly"), None);
         set.set_mode(1, None).unwrap();
         assert_eq!(set.for_mode("sketch"), Some(0), "an untagged layout loses the default");
+
+        let mut set = three();
+        set.set_mode(0, Some("sketch".into())).unwrap();
+        set.set_mode_default(0).unwrap();
+        set.set_mode(0, Some("part".into())).unwrap();
+        assert!(!set.items()[0].mode_default, "retagging does not carry the default over");
     }
 
     #[test]

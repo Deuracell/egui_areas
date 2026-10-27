@@ -50,7 +50,8 @@ pub(super) fn handle_corner_drags(
     actions: &mut Vec<AreaAction>,
 ) -> Option<TilingHint> {
     let mut hovering = false;
-    let mut drag: Option<Drag> = ui.data(|d| d.get_temp(memory_id()));
+    // A gesture whose area vanished mid-drag (layout switched, area closed) is over.
+    let mut drag: Option<Drag> = ui.data(|d| d.get_temp::<Drag>(memory_id())).filter(|d| rect_of(areas, d.area).is_some());
 
     for &(area, rect) in areas {
         for corner in Corner::ALL {

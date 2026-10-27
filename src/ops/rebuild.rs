@@ -41,8 +41,10 @@ fn node(tree: &mut Tree, mut items: Vec<(Area, Rect)>, bounds: Rect) -> Option<N
             if first.is_empty() || second.is_empty() {
                 continue;
             }
-            let ratio = clamp_ratio((cut - lo) / (hi - lo)).unwrap_or(0.5);
-            let (b1, b2) = bounds.split(axis, (cut - lo) / (hi - lo));
+            let raw = (cut - lo) / (hi - lo);
+            // A split cannot be thinner than the minimum ratio; refuse such a layout.
+            let ratio = clamp_ratio(raw).ok().filter(|r| (r - raw).abs() < EPS)?;
+            let (b1, b2) = bounds.split(axis, ratio);
             let first = node(tree, first, b1)?;
             let second = node(tree, second, b2)?;
             let id = tree.insert(Node::Split { axis, ratio, first, second }, None);
@@ -77,6 +79,12 @@ mod tests {
             (area("d"), r(0.0, 0.4, 0.4, 0.6)),
             (area("e"), r(0.4, 0.4, 0.2, 0.2)),
         ];
+        assert!(tree_from_rects(items).is_none());
+    }
+
+    #[test]
+    fn a_sliver_thinner_than_the_minimum_ratio_is_refused() {
+        let items = vec![(area("a"), r(0.0, 0.0, 0.02, 1.0)), (area("b"), r(0.02, 0.0, 0.98, 1.0))];
         assert!(tree_from_rects(items).is_none());
     }
 

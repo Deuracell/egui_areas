@@ -72,8 +72,23 @@ pub(super) fn classify(i: &Input) -> Gesture {
         return Gesture::PopOut;
     }
     let horizontal = i.delta.x.abs() >= i.delta.y.abs();
-    let (along, inward_sign) = if horizontal { (i.delta.x, i.corner.inward_x()) } else { (i.delta.y, i.corner.inward_y()) };
+    let first = decide(i, horizontal);
+    if first != Gesture::Idle {
+        return first;
+    }
+    // Near the diagonal there may be something to join along the other axis only.
+    let other = if horizontal { i.delta.y } else { i.delta.x };
+    if other.abs() >= DEAD_ZONE / 2.0 {
+        if let join @ Gesture::Join { .. } = decide(i, !horizontal) {
+            return join;
+        }
+    }
+    Gesture::Idle
+}
 
+/// What dragging along one axis means: split if heading into the area, join if out of it.
+fn decide(i: &Input, horizontal: bool) -> Gesture {
+    let (along, inward_sign) = if horizontal { (i.delta.x, i.corner.inward_x()) } else { (i.delta.y, i.corner.inward_y()) };
     if along * inward_sign > 0.0 {
         split(i, horizontal)
     } else {
@@ -214,6 +229,20 @@ mod tests {
         assert_eq!(classify(&i), Gesture::PopOut, "shift wins over split, whichever way it is dragged");
         i.delta = egui::vec2(-60.0, 0.0);
         assert_eq!(classify(&i), Gesture::PopOut);
+    }
+
+    #[test]
+    fn a_diagonal_drag_joins_along_the_other_axis_when_the_dominant_one_has_nothing() {
+        let (_, b) = ids();
+        // Neighbour above the top-left corner; the drag is mostly leftward but also upward.
+        let above = [Neighbour { id: b, rect: area(), side: Side::Top }];
+        let mut i = input(Corner::TopLeft, (-30.0, -20.0));
+        i.neighbours = &above;
+        assert!(matches!(classify(&i), Gesture::Join { target, .. } if target == b));
+        // Too little movement on the other axis to count.
+        let mut i = input(Corner::TopLeft, (-40.0, -2.0));
+        i.neighbours = &above;
+        assert_eq!(classify(&i), Gesture::Idle);
     }
 
     #[test]
