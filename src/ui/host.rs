@@ -18,8 +18,10 @@ pub trait AreaHost {
     /// `view` keys the area's view state (it follows the editor through swaps).
     fn show_header_extras(&mut self, ui: &mut egui::Ui, area: NodeId, view: ViewId, kind: &EditorKind, active: bool);
 
-    /// The user asked for a copy of an area showing `kind` in a new window.
-    fn request_pop_out(&mut self, _kind: &EditorKind) {}
+    /// The user asked for a copy of an area in a new window. `view` is the
+    /// source area's view key and `size` its size on screen, so the copy can
+    /// start from the same view and open at the same size.
+    fn request_pop_out(&mut self, _kind: &EditorKind, _view: ViewId, _size: egui::Vec2) {}
 
     /// Whether `area`'s editor is in the middle of an operation (a tool half
     /// done, a drag). While true, the pointer leaving the area does not move

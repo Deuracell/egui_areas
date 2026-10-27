@@ -54,8 +54,9 @@ pub fn show_workspace(
 
     for a in actions {
         if let AreaAction::PopOut { area } = &a {
-            if let Some(area) = workspace.tree.area(*area) {
-                host.request_pop_out(&area.kind);
+            if let Some(found) = workspace.tree.area(*area) {
+                let size = drawn.iter().find(|(id, _)| id == area).map_or(egui::vec2(900.0, 600.0), |(_, r)| r.size());
+                host.request_pop_out(&found.kind, found.view, size);
             }
             continue;
         }
