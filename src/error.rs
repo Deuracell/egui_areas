@@ -14,6 +14,12 @@ pub enum OpError {
     LastArea,
     /// Ratio was NaN or infinite.
     BadRatio,
+    /// The two areas do not share an edge.
+    NotAdjacent,
+    /// One area would be cut in two pieces by the other, which a tiling cannot show.
+    BandInterior,
+    /// The result would not be a layout of straight cuts across the whole window.
+    Unrepresentable,
 }
 
 impl fmt::Display for OpError {
@@ -26,6 +32,9 @@ impl fmt::Display for OpError {
             Self::NotSiblings => write!(f, "areas are not the two halves of one split"),
             Self::LastArea => write!(f, "cannot close the last area"),
             Self::BadRatio => write!(f, "split ratio must be a finite number"),
+            Self::NotAdjacent => write!(f, "areas do not share an edge"),
+            Self::BandInterior => write!(f, "the overlap lies strictly inside one of the areas"),
+            Self::Unrepresentable => write!(f, "the result cannot be laid out with straight cuts"),
         }
     }
 }

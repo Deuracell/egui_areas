@@ -1,15 +1,18 @@
 //! Tree editing operations as plain functions. Each refuses invalid input with
 //! an [`OpError`](crate::OpError) and leaves the tree unchanged.
 
+mod absorb;
 mod close;
 mod join;
 mod maximize;
 mod ratio;
+mod rebuild;
 mod resize;
 mod set_kind;
 mod split;
 mod swap;
 
+pub use absorb::absorb_across;
 pub use close::close_area;
 pub use join::join_areas;
 pub use maximize::{maximize_area, restore_area, toggle_maximize};
