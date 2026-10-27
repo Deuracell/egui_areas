@@ -65,7 +65,7 @@ pub(super) fn draw_header(
     egui::ScrollArea::horizontal()
         .id_salt(("header_scroll", area))
         .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
-        .drag_to_scroll(false)
+        .scroll_source(egui::scroll_area::ScrollSource::MOUSE_WHEEL | egui::scroll_area::ScrollSource::SCROLL_BAR)
         .auto_shrink([false, false])
         .show(&mut strip, |ui| {
             // Mouse wheel over the header scrolls controls that do not fit.
