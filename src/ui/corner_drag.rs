@@ -8,8 +8,10 @@ use super::hint::{DragMode, TilingHint};
 use super::overlay::paint_gesture;
 use super::pixels::to_pixels;
 use super::snap::divider_coords;
-use crate::layout::split_rects;
-use crate::{Axis, Node, NodeId, Rect, Workspace};
+use super::dividers::GAP;
+use crate::layout::area_rects;
+use crate::ops::absorb_across;
+use crate::{Axis, NodeId, Rect, Workspace};
 
 /// Side of the square grab zone at each area corner.
 const HOTSPOT: f32 = 12.0;
@@ -116,18 +118,34 @@ fn current_gesture(
     let pointer = ui.ctx().pointer_latest_pos().unwrap_or(drag.start);
     let coords = |axis| divider_coords(&ws.tree, bounds, axis, None);
     let (snap_x, snap_y) = (coords(Axis::Horizontal), coords(Axis::Vertical));
-    classify(&Input {
+    let gesture = classify(&Input {
         area,
         corner: drag.corner,
         delta: pointer - drag.start,
         pointer,
         ctrl: ui.input(|i| i.modifiers.ctrl),
         shift: ui.input(|i| i.modifiers.shift),
-        neighbour: neighbour_of(ws, drag.area, bounds),
+        neighbours: &neighbours_at(areas, drag.area, drag.corner),
         hovered_other: areas.iter().find(|&&(a, r)| a != drag.area && r.contains(pointer)).copied(),
         snap_x: &snap_x,
         snap_y: &snap_y,
-    })
+    });
+    match gesture {
+        Gesture::Join { target, target_rect, .. } => match join_result(ws, bounds, drag.area, target) {
+            Some(result) => Gesture::Join { target, target_rect, result },
+            None => Gesture::Idle,
+        },
+        other => other,
+    }
+}
+
+/// Where the area covering the joined stretch would end up, found by trying the
+/// join on a copy. `None` if the join would be refused.
+fn join_result(ws: &Workspace, bounds: egui::Rect, area: NodeId, target: NodeId) -> Option<egui::Rect> {
+    let mut trial = ws.tree.clone();
+    let survivor = absorb_across(&mut trial, area, target).ok()?;
+    let (_, rect) = area_rects(&trial, Rect::UNIT).into_iter().find(|&(id, _)| id == survivor)?;
+    Some(to_pixels(rect, bounds).shrink(GAP / 2.0))
 }
 
 fn resolve(
@@ -141,32 +159,31 @@ fn resolve(
     match current_gesture(ui, ws, bounds, areas, drag) {
         Gesture::Idle => None,
         Gesture::Split { axis, ratio, .. } => Some(AreaAction::Split { area, axis, ratio }),
-        Gesture::Join { .. } => Some(AreaAction::AbsorbNeighbour { area }),
+        Gesture::Join { target, .. } => Some(AreaAction::JoinAcross { area, target }),
         Gesture::Swap { target, .. } => Some(AreaAction::SwapWith { area, other: target }),
         Gesture::PopOut => Some(AreaAction::PopOut { area }),
     }
 }
 
-/// The area's sibling in the tree, where it is on screen, and which side of the area it touches.
-/// Only a single area counts: absorbing a whole group of areas would silently
-/// remove several editors at once.
-fn neighbour_of(ws: &Workspace, area: NodeId, bounds: egui::Rect) -> Option<Neighbour> {
-    let parent = ws.tree.parent(area)?;
-    let Node::Split { axis, first, .. } = ws.tree.node(parent)? else { return None };
-    let sibling = ws.tree.sibling(area)?;
-    ws.tree.area(sibling)?;
-    let is_first = *first == area;
-    let split = split_rects(&ws.tree, Rect::UNIT).into_iter().find(|s| s.id == parent)?;
-    let (r1, r2) = split.rect.split(split.axis, split.ratio);
-    let side = match (axis, is_first) {
-        (Axis::Horizontal, true) => Side::Right,
-        (Axis::Horizontal, false) => Side::Left,
-        (Axis::Vertical, true) => Side::Bottom,
-        (Axis::Vertical, false) => Side::Top,
-    };
-    Some(Neighbour {
-        id: sibling,
-        rect: to_pixels(if is_first { r2 } else { r1 }, bounds),
-        side,
-    })
+/// How far outside the corner (and inside along the edge) a neighbour is looked for.
+const PROBE: f32 = 6.0;
+
+/// The areas just outside `corner` of `area`: the one beyond its horizontal
+/// edge and the one beyond its vertical edge, wherever they are and whatever
+/// their size.
+fn neighbours_at(areas: &[(NodeId, egui::Rect)], area: NodeId, corner: Corner) -> Vec<Neighbour> {
+    let Some(rect) = rect_of(areas, area) else { return Vec::new() };
+    let (ix, iy) = (corner.inward_x(), corner.inward_y());
+    let at = egui::pos2(if ix > 0.0 { rect.min.x } else { rect.max.x }, if iy > 0.0 { rect.min.y } else { rect.max.y });
+    let probes = [
+        (at + egui::vec2(-ix * PROBE, iy * PROBE), if ix > 0.0 { Side::Left } else { Side::Right }),
+        (at + egui::vec2(ix * PROBE, -iy * PROBE), if iy > 0.0 { Side::Top } else { Side::Bottom }),
+    ];
+    probes
+        .into_iter()
+        .filter_map(|(p, side)| {
+            let &(id, rect) = areas.iter().find(|&&(a, r)| a != area && r.contains(p))?;
+            Some(Neighbour { id, rect, side })
+        })
+        .collect()
 }

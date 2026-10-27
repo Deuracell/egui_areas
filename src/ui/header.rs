@@ -19,10 +19,6 @@ pub(super) struct HeaderInfo {
     pub area: NodeId,
     pub view: ViewId,
     pub same_kind_count: usize,
-    /// The neighbour is a single area, so it can be absorbed.
-    pub can_absorb: bool,
-    /// The area has a neighbour to give its space to.
-    pub can_merge: bool,
     pub maximized: bool,
 }
 
@@ -90,8 +86,6 @@ fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaActi
     choose(ui, layout, "Split into Left | Right", AreaAction::Split { area, axis: Axis::Horizontal, ratio: 0.5 });
     choose(ui, layout, "Split into Top / Bottom", AreaAction::Split { area, axis: Axis::Vertical, ratio: 0.5 });
     ui.separator();
-    choose(ui, layout && info.can_absorb, "Absorb neighbour", AreaAction::AbsorbNeighbour { area });
-    choose(ui, layout && info.can_merge, "Merge into neighbour", AreaAction::MergeIntoNeighbour { area });
     ui.separator();
     let label = if info.maximized { "Restore" } else { "Maximize" };
     choose(ui, true, label, AreaAction::ToggleMaximize { area });

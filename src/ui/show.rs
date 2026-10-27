@@ -8,7 +8,7 @@ use super::header::HeaderInfo;
 use super::host::AreaHost;
 use super::pixels::to_pixels;
 use super::shortcuts;
-use crate::{Node, NodeId, Rect, Workspace};
+use crate::{NodeId, Rect, Workspace};
 
 /// Draws the whole workspace into the space `ui` has left: the maximized area
 /// alone, or every area with draggable dividers between them. `active` is
@@ -53,13 +53,6 @@ pub fn show_workspace(
     shortcuts::collect(ui, active, &mut actions);
 
     for a in actions {
-        // When the active area is closed, focus goes to whoever takes its space.
-        let heir = match &a {
-            AreaAction::MergeIntoNeighbour { area } if active.is(*area) => {
-                workspace.tree.sibling(*area).and_then(|s| workspace.tree.first_area(s))
-            }
-            _ => None,
-        };
         if let AreaAction::PopOut { area } = &a {
             if let Some(area) = workspace.tree.area(*area) {
                 host.request_pop_out(&area.kind);
@@ -68,9 +61,8 @@ pub fn show_workspace(
         }
         // An earlier action this frame may have made this one stale (its area
         // is gone); the tree refuses it unchanged, so it is simply dropped.
-        let result = action::apply(workspace, a);
-        if let (Ok(()), Some(heir)) = (result, heir) {
-            active.set(heir);
+        if let Ok(Some(focus)) = action::apply(workspace, a) {
+            active.set(focus);
         }
     }
     hint
@@ -78,13 +70,10 @@ pub fn show_workspace(
 
 fn header_info(ws: &Workspace, area: NodeId, kind: &crate::EditorKind) -> HeaderInfo {
     let tree = &ws.tree;
-    let sibling = tree.sibling(area);
     HeaderInfo {
         area,
         view: tree.area(area).expect("drawn nodes are areas").view,
         same_kind_count: tree.areas().iter().filter(|&&a| tree.area(a).is_some_and(|x| &x.kind == kind)).count(),
-        can_absorb: sibling.is_some_and(|s| matches!(tree.node(s), Some(Node::Area(_)))),
-        can_merge: sibling.is_some(),
         maximized: ws.maximized() == Some(area),
     }
 }

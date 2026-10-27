@@ -18,7 +18,7 @@ pub(super) enum Side {
     Bottom,
 }
 
-/// The neighbour an area can absorb: its sibling in the tree, when that is a single area.
+/// An area next to the dragged corner that the dragged area could take over.
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Neighbour {
     pub id: NodeId,
@@ -34,7 +34,8 @@ pub(super) struct Input<'a> {
     pub pointer: egui::Pos2,
     pub ctrl: bool,
     pub shift: bool,
-    pub neighbour: Option<Neighbour>,
+    /// The areas just outside this corner, one per side at most.
+    pub neighbours: &'a [Neighbour],
     /// The other area under the pointer, for swapping.
     pub hovered_other: Option<(NodeId, egui::Rect)>,
     /// x positions of vertical dividers a left|right split can snap to.
@@ -48,8 +49,10 @@ pub(super) enum Gesture {
     Idle,
     /// `guide` is the coordinate snapped to, for drawing a guide line.
     Split { axis: Axis, ratio: f32, guide: Option<f32> },
-    /// The dragged area grows over `target`, which is removed.
-    Join { target: NodeId, target_rect: egui::Rect },
+    /// The dragged area takes over `target`'s space where they face each other.
+    /// `result` is where the area covering that stretch will be; the drawing
+    /// layer replaces the first guess made here with the real outcome.
+    Join { target: NodeId, target_rect: egui::Rect, result: egui::Rect },
     Swap { target: NodeId, target_rect: egui::Rect },
     /// Open a copy of the dragged area in a new window.
     PopOut,
@@ -102,9 +105,9 @@ fn join(i: &Input, horizontal: bool) -> Gesture {
     } else {
         Side::Bottom
     };
-    match i.neighbour {
-        Some(n) if n.side == outward => Gesture::Join { target: n.id, target_rect: n.rect },
-        _ => Gesture::Idle,
+    match i.neighbours.iter().find(|n| n.side == outward) {
+        Some(n) => Gesture::Join { target: n.id, target_rect: n.rect, result: n.rect },
+        None => Gesture::Idle,
     }
 }
 
@@ -124,7 +127,7 @@ mod tests {
         egui::Rect::from_min_size(egui::pos2(100.0, 100.0), egui::vec2(400.0, 300.0))
     }
 
-    fn input(corner: Corner, delta: (f32, f32)) -> Input<'static> {
+    fn input<'a>(corner: Corner, delta: (f32, f32)) -> Input<'a> {
         let start = match corner {
             Corner::TopLeft => area().left_top(),
             Corner::TopRight => area().right_top(),
@@ -138,7 +141,7 @@ mod tests {
             pointer: start + egui::vec2(delta.0, delta.1),
             ctrl: false,
             shift: false,
-            neighbour: None,
+            neighbours: &[],
             hovered_other: None,
             snap_x: &[],
             snap_y: &[],
@@ -189,13 +192,15 @@ mod tests {
     #[test]
     fn outward_drag_joins_only_toward_the_neighbour_side() {
         let (_, b) = ids();
+        let right = [Neighbour { id: b, rect: area(), side: Side::Right }];
         let mut i = input(Corner::TopRight, (60.0, 0.0));
-        i.neighbour = Some(Neighbour { id: b, rect: area(), side: Side::Right });
+        i.neighbours = &right;
         assert!(matches!(classify(&i), Gesture::Join { target, .. } if target == b));
 
-        i.neighbour = Some(Neighbour { id: b, rect: area(), side: Side::Left });
+        let left = [Neighbour { id: b, rect: area(), side: Side::Left }];
+        i.neighbours = &left;
         assert_eq!(classify(&i), Gesture::Idle, "neighbour is on the other side");
-        i.neighbour = None;
+        i.neighbours = &[];
         assert_eq!(classify(&i), Gesture::Idle, "nothing to join");
     }
 

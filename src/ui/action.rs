@@ -1,4 +1,4 @@
-use crate::ops::{close_area, join_areas, set_area_kind, split_area, swap_areas, toggle_maximize};
+use crate::ops::{absorb_across, set_area_kind, split_area, swap_areas, toggle_maximize};
 use crate::{Axis, EditorKind, NodeId, OpError, Workspace};
 
 /// Something the user asked for through an area header. Collected while
@@ -10,31 +10,28 @@ pub(super) enum AreaAction {
     Split { area: NodeId, axis: Axis, ratio: f32 },
     /// Exchange what two areas show.
     SwapWith { area: NodeId, other: NodeId },
-    /// Remove `area`; its neighbour expands into the space.
-    MergeIntoNeighbour { area: NodeId },
-    /// Remove `area`'s neighbour; `area` expands into the space.
-    AbsorbNeighbour { area: NodeId },
+    /// `area` takes over the neighbour `target`'s space where they face each
+    /// other (see [`absorb_across`]).
+    JoinAcross { area: NodeId, target: NodeId },
     ToggleMaximize { area: NodeId },
     /// Show a copy of `area`'s editor in a new window. Changes no tree: the
     /// host opens the window.
     PopOut { area: NodeId },
 }
 
-pub(super) fn apply(ws: &mut Workspace, action: AreaAction) -> Result<(), OpError> {
+/// Applies `action`. On success returns the area that should take focus, if the
+/// action changed which areas exist.
+pub(super) fn apply(ws: &mut Workspace, action: AreaAction) -> Result<Option<NodeId>, OpError> {
     match action {
-        AreaAction::SetKind { area, kind } => set_area_kind(&mut ws.tree, area, kind),
+        AreaAction::SetKind { area, kind } => set_area_kind(&mut ws.tree, area, kind).map(|_| None),
         AreaAction::Split { area, axis, ratio } => {
             let kind = ws.tree.area(area).ok_or(OpError::NotAnArea(area))?.kind.clone();
-            split_area(&mut ws.tree, area, axis, ratio, kind).map(|_| ())
+            split_area(&mut ws.tree, area, axis, ratio, kind).map(|_| None)
         }
-        AreaAction::SwapWith { area, other } => swap_areas(&mut ws.tree, area, other),
-        AreaAction::MergeIntoNeighbour { area } => close_area(&mut ws.tree, area).map(|_| ()),
-        AreaAction::AbsorbNeighbour { area } => {
-            let neighbour = ws.tree.sibling(area).ok_or(OpError::LastArea)?;
-            join_areas(&mut ws.tree, area, neighbour)
-        }
-        AreaAction::ToggleMaximize { area } => toggle_maximize(ws, area),
-        AreaAction::PopOut { .. } => Ok(()),
+        AreaAction::SwapWith { area, other } => swap_areas(&mut ws.tree, area, other).map(|_| None),
+        AreaAction::JoinAcross { area, target } => absorb_across(&mut ws.tree, area, target).map(Some),
+        AreaAction::ToggleMaximize { area } => toggle_maximize(ws, area).map(|_| None),
+        AreaAction::PopOut { .. } => Ok(None),
     }
 }
 
@@ -54,8 +51,9 @@ mod tests {
         apply(&mut w, AreaAction::Split { area: a, axis: Axis::Horizontal, ratio: 0.5 }).unwrap();
         let kinds: Vec<_> = w.tree.areas().iter().map(|&i| w.tree.area(i).unwrap().kind.id().to_string()).collect();
         assert_eq!(kinds, ["sketch", "sketch"]);
-        apply(&mut w, AreaAction::AbsorbNeighbour { area: a }).unwrap();
-        assert_eq!(w.tree.areas(), vec![a]);
+        let b = w.tree.areas()[1];
+        let survivor = apply(&mut w, AreaAction::JoinAcross { area: a, target: b }).unwrap().unwrap();
+        assert_eq!(w.tree.areas(), vec![survivor]);
     }
 
     #[test]
@@ -69,9 +67,8 @@ mod tests {
     }
 
     #[test]
-    fn lone_area_cannot_merge_or_absorb() {
+    fn an_area_cannot_join_itself() {
         let (mut w, a) = ws();
-        assert_eq!(apply(&mut w, AreaAction::MergeIntoNeighbour { area: a }), Err(OpError::LastArea));
-        assert_eq!(apply(&mut w, AreaAction::AbsorbNeighbour { area: a }), Err(OpError::LastArea));
+        assert_eq!(apply(&mut w, AreaAction::JoinAcross { area: a, target: a }), Err(OpError::SameArea));
     }
 }

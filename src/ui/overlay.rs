@@ -37,10 +37,13 @@ pub(super) fn paint_gesture(ui: &egui::Ui, bounds: egui::Rect, source: egui::Rec
                 };
             }
         }
-        Gesture::Join { target_rect, .. } => {
-            painter.rect_filled(source, 0.0, egui::Color32::from_black_alpha(140));
-            painter.rect_stroke(target_rect, 0.0, line, egui::StrokeKind::Inside);
-            painter.rect_filled(target_rect, 0.0, tint);
+        Gesture::Join { target_rect, result, .. } => {
+            // The neighbour being taken over is marked lightly; the area that
+            // will cover the stretch, which may be only part of the dragged
+            // one, is filled and outlined.
+            painter.rect_stroke(target_rect, 0.0, egui::Stroke::new(1.0, accent), egui::StrokeKind::Inside);
+            painter.rect_filled(result, 0.0, tint);
+            painter.rect_stroke(result, 0.0, line, egui::StrokeKind::Inside);
             painter.arrow(
                 source.center(),
                 (target_rect.center() - source.center()).normalized() * 40.0,
