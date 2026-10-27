@@ -1,6 +1,6 @@
 use super::action::AreaAction;
 use super::host::AreaHost;
-use crate::{Axis, EditorKind, NodeId};
+use crate::{Axis, EditorKind, NodeId, ViewId};
 
 /// Gap above and below the header's controls.
 const HEADER_PAD: f32 = 3.0;
@@ -17,6 +17,7 @@ pub(super) fn header_height(ui: &egui::Ui) -> f32 {
 /// What a header needs to know about its area to offer the right choices.
 pub(super) struct HeaderInfo {
     pub area: NodeId,
+    pub view: ViewId,
     pub same_kind_count: usize,
     /// The neighbour is a single area, so it can be absorbed.
     pub can_absorb: bool,
@@ -61,7 +62,7 @@ pub(super) fn draw_header(
         strip.label(egui::RichText::new(note).small().weak());
     }
     strip.set_clip_rect(rect.intersect(ui.clip_rect()));
-    host.show_header_extras(&mut strip, area, kind, active);
+    host.show_header_extras(&mut strip, area, info.view, kind, active);
 }
 
 fn context_menu(ui: &mut egui::Ui, info: &HeaderInfo, actions: &mut Vec<AreaAction>) {

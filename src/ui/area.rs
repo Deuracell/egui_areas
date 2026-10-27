@@ -23,7 +23,7 @@ pub(super) fn draw_area(
     let body = egui::Rect::from_min_max(egui::pos2(rect.min.x, header.max.y), rect.max);
     let mut body_ui = ui.new_child(egui::UiBuilder::new().id_salt(("area_body", id)).max_rect(body));
     body_ui.set_clip_rect(body.intersect(ui.clip_rect()));
-    host.show_editor(&mut body_ui, id, kind, active);
+    host.show_editor(&mut body_ui, id, info.view, kind, active);
 
     super::rounding::mask_corners(ui.painter(), rect, super::rounding::backdrop(ui));
     ui.painter().rect_stroke(rect, super::rounding::radius(), border, egui::StrokeKind::Inside);

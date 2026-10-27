@@ -1,4 +1,4 @@
-use crate::{EditorKind, NodeId};
+use crate::{EditorKind, NodeId, ViewId};
 
 /// What the layout needs from the application: names for headers and the
 /// editors' contents. Keeps this crate ignorant of what editors do.
@@ -15,9 +15,10 @@ pub trait AreaHost {
 
     /// Lets the editor add controls to its area's header, after the dropdown
     /// and badge. `ui` is a left-to-right row; content beyond the header is clipped.
-    fn show_header_extras(&mut self, ui: &mut egui::Ui, area: NodeId, kind: &EditorKind, active: bool);
+    /// `view` keys the area's view state (it follows the editor through swaps).
+    fn show_header_extras(&mut self, ui: &mut egui::Ui, area: NodeId, view: ViewId, kind: &EditorKind, active: bool);
 
     /// Draws the editor for `area` into `ui`, which spans exactly the area's
     /// body. `active` is true for the one area the user is working in.
-    fn show_editor(&mut self, ui: &mut egui::Ui, area: NodeId, kind: &EditorKind, active: bool);
+    fn show_editor(&mut self, ui: &mut egui::Ui, area: NodeId, view: ViewId, kind: &EditorKind, active: bool);
 }

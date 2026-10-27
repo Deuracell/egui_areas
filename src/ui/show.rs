@@ -63,6 +63,7 @@ fn header_info(ws: &Workspace, area: NodeId, kind: &crate::EditorKind) -> Header
     let sibling = tree.sibling(area);
     HeaderInfo {
         area,
+        view: tree.area(area).expect("drawn nodes are areas").view,
         same_kind_count: tree.areas().iter().filter(|&&a| tree.area(a).is_some_and(|x| &x.kind == kind)).count(),
         can_absorb: sibling.is_some_and(|s| matches!(tree.node(s), Some(Node::Area(_)))),
         can_merge: sibling.is_some(),
