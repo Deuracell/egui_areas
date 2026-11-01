@@ -96,8 +96,12 @@ pub(super) fn handle_corner_drags(
         }
     }
     ui.data_mut(|data| match drag {
-        Some(d) => data.insert_temp(memory_id(), d),
-        None => data.remove::<Drag>(memory_id()),
+        Some(d) => {
+            data.insert_temp(memory_id(), d);
+        }
+        None => {
+            data.remove::<Drag>(memory_id());
+        }
     });
     hint
 }
