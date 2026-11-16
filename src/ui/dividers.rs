@@ -2,7 +2,7 @@ use super::pixels::{CORNER_HOTSPOT, to_pixels};
 use super::snap::{divider_coords, nearest};
 use crate::layout::{SplitRect, split_rects};
 use crate::ops::resize_split;
-use crate::{Axis, NodeId, Rect, Tree};
+use crate::{Axis, NodeId, UnitRect, AreaTree};
 
 /// Visible space between neighbouring areas.
 pub(super) const GAP: f32 = 2.0;
@@ -66,10 +66,10 @@ pub(super) struct DividerOutcome {
 /// Handles divider drags, applying them to the tree before the areas are laid
 /// out. Dragged dividers snap to other dividers and to the middle of their
 /// parent; hold Shift to turn that off.
-pub(super) fn interact_dividers(ui: &mut egui::Ui, tree: &mut Tree, bounds: egui::Rect) -> DividerOutcome {
+pub(super) fn interact_dividers(ui: &mut egui::Ui, tree: &mut AreaTree, bounds: egui::Rect) -> DividerOutcome {
     let snapping = !ui.input(|i| i.modifiers.shift);
     let mut out = DividerOutcome::default();
-    for s in split_rects(tree, Rect::UNIT) {
+    for s in split_rects(tree, UnitRect::UNIT) {
         let response = divider_response(ui, &s, bounds);
         let icon = match s.axis {
             Axis::Horizontal => egui::CursorIcon::ResizeHorizontal,
@@ -111,8 +111,8 @@ pub(super) fn interact_dividers(ui: &mut egui::Ui, tree: &mut Tree, bounds: egui
 }
 
 /// Highlights the divider under the pointer, and any snap guides.
-pub(super) fn paint_dividers(ui: &mut egui::Ui, tree: &Tree, bounds: egui::Rect, outcome: &DividerOutcome) {
-    for s in split_rects(tree, Rect::UNIT).into_iter().filter(|s| outcome.hot.contains(&s.id)) {
+pub(super) fn paint_dividers(ui: &mut egui::Ui, tree: &AreaTree, bounds: egui::Rect, outcome: &DividerOutcome) {
+    for s in split_rects(tree, UnitRect::UNIT).into_iter().filter(|s| outcome.hot.contains(&s.id)) {
         let rect = divider_rect(&s, bounds, HIGHLIGHT_WIDTH);
         ui.painter().rect_filled(rect, 1.0, ui.visuals().selection.bg_fill);
     }

@@ -1,6 +1,6 @@
 use super::rebuild::{EPS, span, tree_from_rects};
 use crate::layout::area_rects;
-use crate::{Area, Axis, NodeId, OpError, Rect, Tree};
+use crate::{Area, Axis, NodeId, OpError, UnitRect, AreaTree};
 
 fn other(axis: Axis) -> Axis {
     match axis {
@@ -9,16 +9,16 @@ fn other(axis: Axis) -> Axis {
     }
 }
 
-fn with_span(r: Rect, axis: Axis, lo: f32, hi: f32) -> Rect {
+fn with_span(r: UnitRect, axis: Axis, lo: f32, hi: f32) -> UnitRect {
     match axis {
-        Axis::Horizontal => Rect { x: lo, w: hi - lo, ..r },
-        Axis::Vertical => Rect { y: lo, h: hi - lo, ..r },
+        Axis::Horizontal => UnitRect { x: lo, w: hi - lo, ..r },
+        Axis::Vertical => UnitRect { y: lo, h: hi - lo, ..r },
     }
 }
 
 /// The part of `r` outside the band `lo..hi` along `along`: at most one piece,
 /// or `BandInterior` if the band leaves a piece on both sides.
-fn remainder(r: Rect, along: Axis, lo: f32, hi: f32) -> Result<Option<Rect>, OpError> {
+fn remainder(r: UnitRect, along: Axis, lo: f32, hi: f32) -> Result<Option<UnitRect>, OpError> {
     let (start, end) = span(r, along);
     match (lo - start > EPS, end - hi > EPS) {
         (true, true) => Err(OpError::BandInterior),
@@ -40,7 +40,7 @@ fn remainder(r: Rect, along: Axis, lo: f32, hi: f32) -> Result<Option<Rect>, OpE
 /// covering the stretch. Refuses (tree unchanged) areas that do not touch, a
 /// stretch strictly inside one of them, and results that straight cuts across
 /// the whole window cannot produce.
-pub fn absorb_across(tree: &mut Tree, x: NodeId, y: NodeId) -> Result<NodeId, OpError> {
+pub fn absorb_across(tree: &mut AreaTree, x: NodeId, y: NodeId) -> Result<NodeId, OpError> {
     if x == y {
         return Err(OpError::SameArea);
     }
@@ -52,7 +52,7 @@ pub fn absorb_across(tree: &mut Tree, x: NodeId, y: NodeId) -> Result<NodeId, Op
             return Err(OpError::NotAnArea(id));
         }
     }
-    let rects = area_rects(tree, Rect::UNIT);
+    let rects = area_rects(tree, UnitRect::UNIT);
     let rect_of = |id| rects.iter().find(|(a, _)| *a == id).map(|&(_, r)| r).expect("areas have rectangles");
     let (rx, ry) = (rect_of(x), rect_of(y));
 
@@ -83,7 +83,7 @@ pub fn absorb_across(tree: &mut Tree, x: NodeId, y: NodeId) -> Result<NodeId, Op
     let band_area = if x_rest.is_some() { Area { kind: x_area.kind.clone(), view: tree.new_view() } } else { x_area.clone() };
     let band_view = band_area.view;
 
-    let mut items: Vec<(Area, Rect)> = rects
+    let mut items: Vec<(Area, UnitRect)> = rects
         .iter()
         .filter(|(id, _)| *id != x && *id != y)
         .map(|&(id, r)| (tree.area(id).expect("areas").clone(), r))
@@ -115,8 +115,8 @@ mod tests {
     }
 
     /// A on the left, B above C on the right; B takes 40 % of the right column.
-    fn layout() -> (Tree, NodeId, NodeId, NodeId) {
-        let mut tree = Tree::single(k("a"));
+    fn layout() -> (AreaTree, NodeId, NodeId, NodeId) {
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
         let c = split_area(&mut tree, b, Axis::Vertical, 0.4, k("c")).unwrap();
@@ -124,9 +124,9 @@ mod tests {
         (tree, a, b, c)
     }
 
-    fn describe(tree: &Tree) -> Vec<(String, [i32; 4])> {
+    fn describe(tree: &AreaTree) -> Vec<(String, [i32; 4])> {
         let q = |v: f32| (v * 100.0).round() as i32;
-        let mut out: Vec<_> = area_rects(tree, Rect::UNIT)
+        let mut out: Vec<_> = area_rects(tree, UnitRect::UNIT)
             .into_iter()
             .map(|(id, r)| (tree.area(id).unwrap().kind.id().to_string(), [q(r.x), q(r.y), q(r.w), q(r.h)]))
             .collect();
@@ -147,7 +147,7 @@ mod tests {
         let top = tree.area(survivor).unwrap();
         assert_ne!(top.view, a_view, "the stretch gets a new instance");
         let lower = tree.areas().into_iter().find(|&id| tree.area(id).unwrap().view == a_view).unwrap();
-        assert_eq!(area_rects(&tree, Rect::UNIT).into_iter().find(|(id, _)| *id == lower).unwrap().1.y, 0.4);
+        assert_eq!(area_rects(&tree, UnitRect::UNIT).into_iter().find(|(id, _)| *id == lower).unwrap().1.y, 0.4);
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn aligned_siblings_give_a_plain_join() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
         let view = tree.area(a).unwrap().view;
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn refused_cases_leave_the_tree_unchanged() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.34, k("b")).unwrap();
         let c = split_area(&mut tree, b, Axis::Horizontal, 0.5, k("c")).unwrap();
@@ -187,7 +187,7 @@ mod tests {
         assert_eq!(describe(&tree), before);
 
         // A tall area next to the middle of three stacked ones: the stretch is interior.
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let right = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("x")).unwrap();
         let mid = split_area(&mut tree, right, Axis::Vertical, 0.34, k("y")).unwrap();

@@ -1,5 +1,5 @@
 use super::pixels::to_pixels;
-use crate::{NodeId, Rect, Workspace};
+use crate::{NodeId, UnitRect, Workspace};
 
 /// The area the user is working in: the one under the pointer, staying put
 /// while the pointer is elsewhere (menu bar, status bar, another window).
@@ -29,7 +29,7 @@ impl ActiveArea {
     pub(super) fn update(&mut self, ws: &Workspace, bounds: egui::Rect, pointer: Option<egui::Pos2>, button_down: bool) {
         let locked = (button_down || self.held) && self.area.is_some();
         if let (Some(p), false) = (pointer, locked) {
-            let hit = ws.visible_areas(Rect::UNIT).into_iter().find(|&(_, r)| to_pixels(r, bounds).contains(p));
+            let hit = ws.visible_areas(UnitRect::UNIT).into_iter().find(|&(_, r)| to_pixels(r, bounds).contains(p));
             if let Some((id, _)) = hit {
                 self.area = Some(id);
             }
@@ -55,10 +55,10 @@ impl ActiveArea {
 mod tests {
     use super::*;
     use crate::ops::{close_area, maximize_area, split_area};
-    use crate::{Axis, EditorKind, Tree};
+    use crate::{Axis, EditorKind, AreaTree};
 
     fn setup() -> (Workspace, NodeId, NodeId, egui::Rect) {
-        let mut tree = Tree::single(EditorKind::new("a"));
+        let mut tree = AreaTree::single(EditorKind::new("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, EditorKind::new("b")).unwrap();
         let bounds = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(100.0, 100.0));

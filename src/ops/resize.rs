@@ -1,9 +1,9 @@
 use super::clamp_ratio;
-use crate::{Node, NodeId, OpError, Tree};
+use crate::{Node, NodeId, OpError, AreaTree};
 
 /// Moves the divider of `split` so its first child gets `ratio` of the space
 /// (clamped to `MIN_RATIO..=MAX_RATIO`). Returns the ratio actually applied.
-pub fn resize_split(tree: &mut Tree, split: NodeId, ratio: f32) -> Result<f32, OpError> {
+pub fn resize_split(tree: &mut AreaTree, split: NodeId, ratio: f32) -> Result<f32, OpError> {
     let ratio = clamp_ratio(ratio)?;
     match tree.node_mut(split) {
         Some(Node::Split { ratio: r, .. }) => {
@@ -22,7 +22,7 @@ mod tests {
 
     #[test]
     fn resize_clamps_and_rejects_areas() {
-        let mut tree = Tree::single(EditorKind::new("x"));
+        let mut tree = AreaTree::single(EditorKind::new("x"));
         let a = tree.root();
         split_area(&mut tree, a, Axis::Horizontal, 0.5, EditorKind::new("y")).unwrap();
         let split = tree.root();

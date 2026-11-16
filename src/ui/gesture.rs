@@ -129,10 +129,10 @@ fn join(i: &Input, horizontal: bool) -> Gesture {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{EditorKind, Tree};
+    use crate::{EditorKind, AreaTree};
 
     fn ids() -> (NodeId, NodeId) {
-        let mut t = Tree::single(EditorKind::new("a"));
+        let mut t = AreaTree::single(EditorKind::new("a"));
         let a = t.root();
         let b = crate::ops::split_area(&mut t, a, Axis::Horizontal, 0.5, EditorKind::new("b")).unwrap();
         (a, b)

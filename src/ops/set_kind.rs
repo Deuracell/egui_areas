@@ -1,8 +1,8 @@
-use crate::{EditorKind, NodeId, OpError, Tree};
+use crate::{EditorKind, NodeId, OpError, AreaTree};
 
 /// Switches what `area` shows. A different kind gets a fresh view, since view
 /// state is specific to an editor type; the same kind changes nothing.
-pub fn set_area_kind(tree: &mut Tree, area: NodeId, kind: EditorKind) -> Result<(), OpError> {
+pub fn set_area_kind(tree: &mut AreaTree, area: NodeId, kind: EditorKind) -> Result<(), OpError> {
     if !tree.contains(area) {
         return Err(OpError::NotFound(area));
     }
@@ -22,7 +22,7 @@ mod tests {
 
     #[test]
     fn kind_changes_and_non_areas_are_refused() {
-        let mut tree = Tree::single(EditorKind::new("a"));
+        let mut tree = AreaTree::single(EditorKind::new("a"));
         let a = tree.root();
         set_area_kind(&mut tree, a, EditorKind::new("b")).unwrap();
         assert_eq!(tree.area(a).unwrap().kind.id(), "b");

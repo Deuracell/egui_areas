@@ -1,11 +1,11 @@
 use super::clamp_ratio;
-use crate::{Area, Axis, EditorKind, Node, NodeId, OpError, Tree};
+use crate::{Area, Axis, EditorKind, Node, NodeId, OpError, AreaTree};
 
 /// Splits `area` in two along `axis`. `area` keeps its id and becomes the
 /// first (left/top) half, taking `ratio` of the space; the new area, showing
 /// `new_kind` with a fresh view, is returned.
 pub fn split_area(
-    tree: &mut Tree,
+    tree: &mut AreaTree,
     area: NodeId,
     axis: Axis,
     ratio: f32,
@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn splitting_root_keeps_original_id() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
         tree.assert_valid();
@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn split_gives_new_area_a_fresh_view() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let before = tree.area(a).unwrap().view;
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn splitting_nested_area_rewires_parent() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
         let c = split_area(&mut tree, b, Axis::Vertical, 0.5, k("c")).unwrap();
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn ratio_is_clamped_and_nan_rejected() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         assert_eq!(split_area(&mut tree, a, Axis::Vertical, f32::NAN, k("b")), Err(OpError::BadRatio));
         assert_eq!(tree.areas().len(), 1, "failed split must not change the tree");
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn splitting_a_split_or_stale_id_is_refused() {
-        let mut tree = Tree::single(k("a"));
+        let mut tree = AreaTree::single(k("a"));
         let a = tree.root();
         split_area(&mut tree, a, Axis::Horizontal, 0.5, k("b")).unwrap();
         let root = tree.root();

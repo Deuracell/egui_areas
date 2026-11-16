@@ -1,10 +1,10 @@
 use super::close_area;
-use crate::{NodeId, OpError, Tree};
+use crate::{NodeId, OpError, AreaTree};
 
 /// Merges `remove` into `keep`: `keep` absorbs the space and contents stay as
 /// they were. Only the two halves of one split can be joined; areas that merely
 /// touch across different splits cannot.
-pub fn join_areas(tree: &mut Tree, keep: NodeId, remove: NodeId) -> Result<(), OpError> {
+pub fn join_areas(tree: &mut AreaTree, keep: NodeId, remove: NodeId) -> Result<(), OpError> {
     if keep == remove {
         return Err(OpError::SameArea);
     }
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn siblings_join() {
-        let mut tree = Tree::single(k());
+        let mut tree = AreaTree::single(k());
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k()).unwrap();
         join_areas(&mut tree, a, b).unwrap();
@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn non_siblings_are_refused_and_tree_unchanged() {
-        let mut tree = Tree::single(k());
+        let mut tree = AreaTree::single(k());
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, k()).unwrap();
         let c = split_area(&mut tree, b, Axis::Vertical, 0.5, k()).unwrap();

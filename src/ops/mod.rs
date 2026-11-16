@@ -1,4 +1,4 @@
-//! Tree editing operations as plain functions. Each refuses invalid input with
+//! AreaTree editing operations as plain functions. Each refuses invalid input with
 //! an [`OpError`](crate::OpError) and leaves the tree unchanged.
 
 mod absorb;

@@ -2,7 +2,7 @@
 
 use super::pixels::to_pixels;
 use crate::layout::split_rects;
-use crate::{Axis, NodeId, Rect, Tree};
+use crate::{Axis, NodeId, UnitRect, AreaTree};
 
 /// How close (in pixels) a position must be to a target to snap onto it.
 pub(super) const SNAP_PX: f32 = 8.0;
@@ -18,8 +18,8 @@ pub(super) fn nearest(value: f32, candidates: impl IntoIterator<Item = f32>) -> 
 /// On-screen coordinates of every divider laid out along `axis` (x for
 /// `Horizontal` splits, y for `Vertical`), skipping `exclude` and anything
 /// inside it: those move together with the divider being dragged.
-pub(super) fn divider_coords(tree: &Tree, bounds: egui::Rect, axis: Axis, exclude: Option<NodeId>) -> Vec<f32> {
-    split_rects(tree, Rect::UNIT)
+pub(super) fn divider_coords(tree: &AreaTree, bounds: egui::Rect, axis: Axis, exclude: Option<NodeId>) -> Vec<f32> {
+    split_rects(tree, UnitRect::UNIT)
         .into_iter()
         .filter(|s| s.axis == axis && !exclude.is_some_and(|e| is_within(tree, s.id, e)))
         .map(|s| {
@@ -33,7 +33,7 @@ pub(super) fn divider_coords(tree: &Tree, bounds: egui::Rect, axis: Axis, exclud
 }
 
 /// True if `node` is `ancestor` or sits below it.
-fn is_within(tree: &Tree, node: NodeId, ancestor: NodeId) -> bool {
+fn is_within(tree: &AreaTree, node: NodeId, ancestor: NodeId) -> bool {
     let mut cur = Some(node);
     while let Some(n) = cur {
         if n == ancestor {
@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn dragged_divider_and_its_descendants_are_not_snap_targets() {
         let k = || EditorKind::new("x");
-        let mut tree = Tree::single(k());
+        let mut tree = AreaTree::single(k());
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.25, k()).unwrap(); // x = 100 of 400
         split_area(&mut tree, b, Axis::Horizontal, 0.5, k()).unwrap(); // x = 100 + 150 = 250

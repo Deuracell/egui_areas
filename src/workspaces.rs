@@ -239,10 +239,10 @@ impl Workspaces {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{EditorKind, Tree};
+    use crate::{EditorKind, AreaTree};
 
     fn ws(name: &str) -> Workspace {
-        Workspace::new(name, Tree::single(EditorKind::new("a")))
+        Workspace::new(name, AreaTree::single(EditorKind::new("a")))
     }
 
     fn names(set: &Workspaces) -> Vec<&str> {

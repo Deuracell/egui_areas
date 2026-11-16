@@ -8,7 +8,7 @@ use super::header::HeaderInfo;
 use super::host::AreaHost;
 use super::pixels::to_pixels;
 use super::shortcuts;
-use crate::{NodeId, Rect, Workspace};
+use crate::{NodeId, UnitRect, Workspace};
 
 /// Draws the whole workspace into the space `ui` has left: the maximized area
 /// alone, or every area with draggable dividers between them. `active` is
@@ -36,7 +36,7 @@ pub fn show_workspace(
             hint = TilingHint::Divider;
         }
     }
-    for (id, unit) in workspace.visible_areas(Rect::UNIT) {
+    for (id, unit) in workspace.visible_areas(UnitRect::UNIT) {
         let Some(kind) = workspace.tree.area(id).map(|a| a.kind.clone()) else { continue };
         let info = header_info(workspace, id, &kind);
         let rect = to_pixels(unit, bounds).shrink(GAP / 2.0);

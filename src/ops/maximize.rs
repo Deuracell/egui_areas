@@ -29,10 +29,10 @@ pub fn toggle_maximize(ws: &mut Workspace, area: NodeId) -> Result<(), OpError> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Axis, EditorKind, Rect, Tree, ops::{close_area, split_area}};
+    use crate::{Axis, EditorKind, UnitRect, AreaTree, ops::{close_area, split_area}};
 
     fn ws() -> (Workspace, NodeId, NodeId) {
-        let mut tree = Tree::single(EditorKind::new("a"));
+        let mut tree = AreaTree::single(EditorKind::new("a"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, EditorKind::new("b")).unwrap();
         (Workspace::new("w", tree), a, b)
@@ -41,11 +41,11 @@ mod tests {
     #[test]
     fn maximized_area_fills_bounds_and_restores() {
         let (mut w, a, _) = ws();
-        assert_eq!(w.visible_areas(Rect::UNIT).len(), 2);
+        assert_eq!(w.visible_areas(UnitRect::UNIT).len(), 2);
         maximize_area(&mut w, a).unwrap();
-        assert_eq!(w.visible_areas(Rect::UNIT), vec![(a, Rect::UNIT)]);
+        assert_eq!(w.visible_areas(UnitRect::UNIT), vec![(a, UnitRect::UNIT)]);
         toggle_maximize(&mut w, a).unwrap();
-        assert_eq!(w.visible_areas(Rect::UNIT).len(), 2);
+        assert_eq!(w.visible_areas(UnitRect::UNIT).len(), 2);
     }
 
     #[test]
@@ -54,7 +54,7 @@ mod tests {
         maximize_area(&mut w, b).unwrap();
         close_area(&mut w.tree, b).unwrap();
         assert_eq!(w.maximized(), None);
-        assert_eq!(w.visible_areas(Rect::UNIT), vec![(a, Rect::UNIT)]);
+        assert_eq!(w.visible_areas(UnitRect::UNIT), vec![(a, UnitRect::UNIT)]);
     }
 
     #[test]

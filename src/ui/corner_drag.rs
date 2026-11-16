@@ -11,7 +11,7 @@ use super::snap::divider_coords;
 use super::dividers::GAP;
 use crate::layout::area_rects;
 use crate::ops::absorb_across;
-use crate::{Axis, NodeId, Rect, Workspace};
+use crate::{Axis, NodeId, UnitRect, Workspace};
 
 
 #[derive(Clone, Copy)]
@@ -150,7 +150,7 @@ fn current_gesture(
 fn join_result(ws: &Workspace, bounds: egui::Rect, area: NodeId, target: NodeId) -> Option<egui::Rect> {
     let mut trial = ws.tree.clone();
     let survivor = absorb_across(&mut trial, area, target).ok()?;
-    let (_, rect) = area_rects(&trial, Rect::UNIT).into_iter().find(|&(id, _)| id == survivor)?;
+    let (_, rect) = area_rects(&trial, UnitRect::UNIT).into_iter().find(|&(id, _)| id == survivor)?;
     Some(to_pixels(rect, bounds).shrink(GAP / 2.0))
 }
 

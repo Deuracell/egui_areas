@@ -13,12 +13,12 @@ struct Slot {
 /// Binary tree of splits and areas. Owns storage and read queries; the editing
 /// operations live in [`crate::ops`].
 #[derive(Clone, Debug)]
-pub struct Tree {
+pub struct AreaTree {
     slots: SlotMap<NodeId, Slot>,
     root: NodeId,
 }
 
-impl Tree {
+impl AreaTree {
     /// A tree with a single area filling everything.
     pub fn single(kind: EditorKind) -> Self {
         let mut tree = Self::unrooted();
@@ -84,7 +84,7 @@ impl Tree {
         }
     }
 
-    /// The view keys of all areas, in the same order as [`Tree::areas`].
+    /// The view keys of all areas, in the same order as [`AreaTree::areas`].
     pub fn view_ids(&self) -> Vec<ViewId> {
         self.areas().iter().filter_map(|&a| self.area(a)).map(|a| a.view).collect()
     }

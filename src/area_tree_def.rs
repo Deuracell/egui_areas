@@ -1,9 +1,9 @@
-//! Nested, id-free serde form of a [`Tree`]. Keeps the file format independent of
+//! Nested, id-free serde form of a [`AreaTree`]. Keeps the file format independent of
 //! slotmap internals (and of TOML's inability to hold the null slots a raw
 //! `SlotMap` serializes).
 
 use crate::ops::clamp_ratio;
-use crate::{Area, Axis, EditorKind, Node, NodeId, Tree};
+use crate::{Area, Axis, EditorKind, Node, NodeId, AreaTree};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Serialize, Deserialize)]
@@ -13,7 +13,7 @@ enum NodeDef {
     Area { kind: EditorKind },
 }
 
-fn to_def(tree: &Tree, id: NodeId) -> NodeDef {
+fn to_def(tree: &AreaTree, id: NodeId) -> NodeDef {
     match tree.node(id).expect("tree links are consistent") {
         Node::Split { axis, ratio, first, second } => NodeDef::Split {
             axis: *axis,
@@ -25,7 +25,7 @@ fn to_def(tree: &Tree, id: NodeId) -> NodeDef {
     }
 }
 
-fn build(tree: &mut Tree, def: NodeDef) -> NodeId {
+fn build(tree: &mut AreaTree, def: NodeDef) -> NodeId {
     match def {
         NodeDef::Area { kind } => {
             let view = tree.new_view();
@@ -43,15 +43,15 @@ fn build(tree: &mut Tree, def: NodeDef) -> NodeId {
     }
 }
 
-impl Serialize for Tree {
+impl Serialize for AreaTree {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         to_def(self, self.root()).serialize(s)
     }
 }
 
-impl<'de> Deserialize<'de> for Tree {
+impl<'de> Deserialize<'de> for AreaTree {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let mut tree = Tree::unrooted();
+        let mut tree = AreaTree::unrooted();
         let root = build(&mut tree, NodeDef::deserialize(d)?);
         tree.set_root(root);
         Ok(tree)
@@ -61,17 +61,17 @@ impl<'de> Deserialize<'de> for Tree {
 #[cfg(test)]
 mod tests {
     use crate::ops::split_area;
-    use crate::{Axis, EditorKind, Tree};
+    use crate::{Axis, EditorKind, AreaTree};
 
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Doc {
-        tree: Tree,
+        tree: AreaTree,
     }
 
     #[test]
     fn toml_roundtrip_preserves_structure() {
         let k = |s| EditorKind::new(s);
-        let mut tree = Tree::single(k("sketch_2d"));
+        let mut tree = AreaTree::single(k("sketch_2d"));
         let root = tree.root();
         let right = split_area(&mut tree, root, Axis::Horizontal, 0.3, k("properties")).unwrap();
         split_area(&mut tree, right, Axis::Vertical, 0.6, k("status")).unwrap();
@@ -80,7 +80,7 @@ mod tests {
         let back: Doc = toml::from_str(&text).unwrap();
         back.tree.assert_valid();
 
-        let kinds = |t: &Tree| -> Vec<String> {
+        let kinds = |t: &AreaTree| -> Vec<String> {
             t.areas().iter().map(|&a| t.area(a).unwrap().kind.id().to_string()).collect()
         };
         assert_eq!(kinds(&back.tree), kinds(&tree));

@@ -1,12 +1,12 @@
 //! Builds a tree of straight cuts from the rectangles of its areas.
 
 use crate::ops::clamp_ratio;
-use crate::{Area, Axis, Node, NodeId, Rect, Tree};
+use crate::{Area, Axis, Node, NodeId, UnitRect, AreaTree};
 
 /// Tolerance when comparing edge positions in unit space.
 pub(super) const EPS: f32 = 1e-4;
 
-pub(super) fn span(r: Rect, axis: Axis) -> (f32, f32) {
+pub(super) fn span(r: UnitRect, axis: Axis) -> (f32, f32) {
     match axis {
         Axis::Horizontal => (r.x, r.x + r.w),
         Axis::Vertical => (r.y, r.y + r.h),
@@ -15,14 +15,14 @@ pub(super) fn span(r: Rect, axis: Axis) -> (f32, f32) {
 
 /// A tree whose areas fill the unit square exactly as `items` say, or `None`
 /// if no sequence of cuts across the whole window separates them (a pinwheel).
-pub(super) fn tree_from_rects(items: Vec<(Area, Rect)>) -> Option<Tree> {
-    let mut tree = Tree::unrooted();
-    let root = node(&mut tree, items, Rect::UNIT)?;
+pub(super) fn tree_from_rects(items: Vec<(Area, UnitRect)>) -> Option<AreaTree> {
+    let mut tree = AreaTree::unrooted();
+    let root = node(&mut tree, items, UnitRect::UNIT)?;
     tree.set_root(root);
     Some(tree)
 }
 
-fn node(tree: &mut Tree, mut items: Vec<(Area, Rect)>, bounds: Rect) -> Option<NodeId> {
+fn node(tree: &mut AreaTree, mut items: Vec<(Area, UnitRect)>, bounds: UnitRect) -> Option<NodeId> {
     if items.len() == 1 {
         let (area, _) = items.pop().expect("one item");
         return Some(tree.insert(Node::Area(area), None));
@@ -32,8 +32,8 @@ fn node(tree: &mut Tree, mut items: Vec<(Area, Rect)>, bounds: Rect) -> Option<N
         let mut cuts: Vec<f32> = items.iter().map(|(_, r)| span(*r, axis).1).filter(|&c| c > lo + EPS && c < hi - EPS).collect();
         cuts.sort_by(f32::total_cmp);
         for cut in cuts {
-            let before = |r: &Rect| span(*r, axis).1 <= cut + EPS;
-            let after = |r: &Rect| span(*r, axis).0 >= cut - EPS;
+            let before = |r: &UnitRect| span(*r, axis).1 <= cut + EPS;
+            let after = |r: &UnitRect| span(*r, axis).0 >= cut - EPS;
             if !items.iter().all(|(_, r)| before(r) || after(r)) {
                 continue;
             }
@@ -62,12 +62,12 @@ mod tests {
     use crate::EditorKind;
 
     fn area(name: &str) -> Area {
-        let tree = Tree::single(EditorKind::new(name));
+        let tree = AreaTree::single(EditorKind::new(name));
         tree.area(tree.root()).unwrap().clone()
     }
 
-    fn r(x: f32, y: f32, w: f32, h: f32) -> Rect {
-        Rect { x, y, w, h }
+    fn r(x: f32, y: f32, w: f32, h: f32) -> UnitRect {
+        UnitRect { x, y, w, h }
     }
 
     #[test]
@@ -111,7 +111,7 @@ mod tests {
         ];
         let tree = tree_from_rects(items).unwrap();
         tree.assert_valid();
-        let rects = crate::layout::area_rects(&tree, Rect::UNIT);
+        let rects = crate::layout::area_rects(&tree, UnitRect::UNIT);
         assert_eq!(rects.len(), 3);
         let total: f32 = rects.iter().map(|(_, r)| r.w * r.h).sum();
         assert!((total - 1.0).abs() < 1e-5);

@@ -1,8 +1,8 @@
-use crate::{NodeId, OpError, Tree};
+use crate::{NodeId, OpError, AreaTree};
 
 /// Exchanges what two areas show, view state included. Positions and ids stay
 /// put; only the editors (with their views) move.
-pub fn swap_areas(tree: &mut Tree, a: NodeId, b: NodeId) -> Result<(), OpError> {
+pub fn swap_areas(tree: &mut AreaTree, a: NodeId, b: NodeId) -> Result<(), OpError> {
     if a == b {
         return Err(OpError::SameArea);
     }
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn swap_exchanges_kinds_not_ids() {
-        let mut tree = Tree::single(EditorKind::new("sketch"));
+        let mut tree = AreaTree::single(EditorKind::new("sketch"));
         let a = tree.root();
         let b = split_area(&mut tree, a, Axis::Horizontal, 0.5, EditorKind::new("props")).unwrap();
         let (view_a, view_b) = (tree.area(a).unwrap().view, tree.area(b).unwrap().view);

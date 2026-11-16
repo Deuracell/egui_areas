@@ -1,9 +1,9 @@
 [package]
-name        = "radcad-workspace"
+name        = "egui_areas"
 version.workspace     = true
 edition.workspace     = true
 authors.workspace     = true
-license.workspace     = true
+license     = "MIT"
 repository.workspace  = true
 
 # Headless Blender-style area tiling. Must stay free of sketch/solver/bevy knowledge.

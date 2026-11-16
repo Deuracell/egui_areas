@@ -40,7 +40,7 @@ mod tests {
     use super::*;
 
     fn ws() -> (Workspace, NodeId) {
-        let tree = crate::Tree::single(EditorKind::new("sketch"));
+        let tree = crate::AreaTree::single(EditorKind::new("sketch"));
         let a = tree.root();
         (Workspace::new("w", tree), a)
     }
