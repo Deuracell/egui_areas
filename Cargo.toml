@@ -1,16 +1,26 @@
 [package]
-name        = "egui_areas"
-version.workspace     = true
-edition.workspace     = true
-authors.workspace     = true
-license     = "MIT"
-repository.workspace  = true
+name         = "egui_areas"
+version      = "0.1.0"
+edition      = "2024"
+rust-version = "1.85"
+authors      = ["Deuracell"]
+license      = "MIT"
+description  = "Blender-style area tiling for egui: split, join, swap and resize editor areas, with named layouts"
+repository   = "https://github.com/Deuracell/egui_areas"
+readme       = "README.md"
+keywords     = ["egui", "tiling", "layout", "docking", "gui"]
+categories   = ["gui", "data-structures"]
 
-# Headless Blender-style area tiling. Must stay free of sketch/solver/bevy knowledge.
+[features]
+default = ["ui"]
+# The egui drawing layer (`egui_areas::ui`). Without it the crate is the headless
+# area tree, its operations and layout sets, and depends only on serde and slotmap.
+ui = ["dep:egui"]
+
 [dependencies]
-egui     = { workspace = true }
-serde    = { workspace = true }
-slotmap  = { workspace = true }
+egui    = { version = "0.36.2", optional = true }
+serde   = { version = "1", features = ["derive"] }
+slotmap = { version = "1", features = ["serde"] }
 
 [dev-dependencies]
-toml = { workspace = true }
+toml = "0.9"

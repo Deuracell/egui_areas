@@ -1,6 +1,4 @@
-//! Area tiling: a headless tree of splits and editor areas with the operations
-//! that edit it (split, join, close, resize, swap, maximize), plus an egui layer
-//! in [`ui`] that draws it. Knows nothing about what the editors show.
+#![doc = include_str!("../README.md")]
 
 pub mod area_tree;
 mod area_tree_def;
@@ -10,6 +8,7 @@ pub mod ids;
 pub mod layout;
 pub mod node;
 pub mod ops;
+#[cfg(feature = "ui")]
 pub mod ui;
 pub mod workspace;
 pub mod workspaces;
