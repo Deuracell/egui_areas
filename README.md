@@ -59,8 +59,8 @@ let hint = egui_areas::ui::show_workspace(ui, &mut workspace, &mut active_area, 
 
 ## Status
 
-Early: the API is not stable yet. The crate was extracted from a CAD application and
-tracks egui's release cadence (currently egui 0.36).
+Early: the API is not stable yet. It was extracted from an application where it
+drives the window layout, and it tracks egui's release cadence (currently egui 0.36).
 
 ## Licence
 
